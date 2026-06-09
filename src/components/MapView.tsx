@@ -1,0 +1,102 @@
+import { useMemo, useState } from 'react';
+import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
+import L from 'leaflet';
+import { useMapNavigationGuard } from '../context/MapNavigationGuard';
+import type { Campus } from '../types/campus';
+import type { MapNavigationState } from '../types/mapTravel';
+import { CampusMapMarker } from './CampusMapMarker';
+import { ProvinceBoundariesLayer } from './ProvinceBoundariesLayer';
+import { MapBoundsController } from './MapBoundsController';
+import { MapMainCampusFocusController } from './MapMainCampusFocusController';
+import { MapTravelController } from './MapTravelController';
+import { MapZoomWatcher } from './MapZoomWatcher';
+import { THAILAND_CENTER, THAILAND_ZOOM } from '../utils/mapBounds';
+
+type MapViewProps = {
+  campuses: Campus[];
+  selectedRegion: string;
+  selectedProvince: string;
+  selectedCampusId: string | null;
+  onSelectCampus: (campus: Campus) => void;
+  travelTarget?: MapNavigationState | null;
+  onTravelComplete?: () => void;
+  suppressMapAnimations?: boolean;
+};
+
+export function MapView({
+  campuses,
+  selectedRegion,
+  selectedProvince,
+  selectedCampusId,
+  onSelectCampus,
+  travelTarget = null,
+  onTravelComplete,
+  suppressMapAnimations = false,
+}: MapViewProps) {
+  const { markUserInteracting } = useMapNavigationGuard();
+  const [mapZoom, setMapZoom] = useState(THAILAND_ZOOM);
+
+  const selectedCampus = useMemo(
+    () => campuses.find((campus) => campus.id === selectedCampusId) ?? null,
+    [campuses, selectedCampusId],
+  );
+
+  const handleMarkerClick = (campus: Campus, event: L.LeafletMouseEvent) => {
+    L.DomEvent.stopPropagation(event.originalEvent);
+    markUserInteracting();
+    onSelectCampus(campus);
+  };
+
+  const suppressBoundsUpdate = Boolean(
+    travelTarget || suppressMapAnimations || selectedCampusId,
+  );
+  const mainMapFocusEnabled = Boolean(
+    selectedCampus && !travelTarget && !suppressMapAnimations,
+  );
+
+  return (
+    <div className="map-view">
+      <MapContainer
+        center={THAILAND_CENTER}
+        zoom={THAILAND_ZOOM}
+        scrollWheelZoom
+        zoomControl={false}
+        className="map-view__map"
+      >
+        <ZoomControl position="bottomright" />
+        <MapBoundsController
+          campuses={campuses}
+          selectedRegion={selectedRegion}
+          selectedProvince={selectedProvince}
+          selectedCampusId={selectedCampusId}
+          suppressBoundsUpdate={suppressBoundsUpdate}
+        />
+        {travelTarget && onTravelComplete && (
+          <MapTravelController travel={travelTarget} onComplete={onTravelComplete} />
+        )}
+        <MapMainCampusFocusController
+          campus={selectedCampus}
+          enabled={mainMapFocusEnabled}
+        />
+        <MapZoomWatcher onZoomChange={setMapZoom} />
+        <TileLayer
+          attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        />
+        <ProvinceBoundariesLayer
+          selectedProvince={selectedProvince}
+          selectedRegion={selectedRegion}
+        />
+        {campuses.map((campus) => (
+          <CampusMapMarker
+            key={campus.id}
+            campus={campus}
+            mapZoom={mapZoom}
+            isSelected={selectedCampusId === campus.id}
+            onMarkerClick={handleMarkerClick}
+          />
+        ))}
+      </MapContainer>
+    </div>
+  );
+}
