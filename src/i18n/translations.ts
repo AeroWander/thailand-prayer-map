@@ -313,7 +313,7 @@ export const translations: Record<Language, TranslationSchema> = {
       of: 'of',
     },
     landing: {
-      headline: 'Pray for Every Campus in Thailand',
+      headline: 'Cover Every Campus in Thailand with Prayer',
       subheadline:
         'Thailand has {count} university campuses. Together, the body of Christ can cover every one in prayer.',
       statTotal: 'University Campuses',
