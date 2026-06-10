@@ -606,11 +606,9 @@ export function CampusMobileBottomSheet({
             }
             aria-hidden="true"
           >
-            <span className="mobile-sheet__peek-dots" />
-            <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
-              <path d="M1 7L7 1.5L13 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
+              <path d="M1 8.5L8 1.5L15 8.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className="mobile-sheet__peek-dots" />
           </div>
         </div>
 
