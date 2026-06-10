@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
+import { useMobileMapOverlay } from '../hooks/useMobileMapOverlay';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
 import { buildCampusPrayerPrompt } from '../utils/campusPrayerPrompt';
@@ -138,14 +139,13 @@ export function CampusMobileBottomSheet({
   const [isPopping, setIsPopping] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
-  const { setSheetDragging, setSheetOpen, setSheetOcclusionTop } = useMapSheetTouchLock();
+  const { setSheetDragging } = useMapSheetTouchLock();
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(0);
   const sheetHeightRef = useRef(sheetHeight);
   const isDraggingRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
-  const shieldRef = useRef<HTMLDivElement>(null);
 
   sheetHeightRef.current = sheetHeight;
 
@@ -160,18 +160,23 @@ export function CampusMobileBottomSheet({
       });
   const locationLine = `${getProvinceLabel(campus.province)} · ${getRegionLabel(campus.region)}`;
 
+  const sheetTop = getViewportHeight() - sheetHeight;
+  const { shieldTop } = useMobileMapOverlay({
+    enabled: true,
+    overlayRef: sheetRef,
+    occlusionTop: sheetTop,
+  });
+
   const heightRatio = sheetHeight / getViewportHeight();
   const showHalfContent = heightRatio >= 0.45 || snapPoint === 'half' || snapPoint === 'full';
   const showFullContent = heightRatio >= 0.75 || snapPoint === 'full';
 
   const reportSheetTop = useCallback(
     (height: number) => {
-      const sheetTop = getViewportHeight() - height;
-      onSheetTopChange(sheetTop);
-      setSheetOcclusionTop(sheetTop);
+      onSheetTopChange(getViewportHeight() - height);
       document.body.style.setProperty('--mobile-sheet-height', `${height}px`);
     },
-    [onSheetTopChange, setSheetOcclusionTop],
+    [onSheetTopChange],
   );
 
   useEffect(() => {
@@ -184,12 +189,7 @@ export function CampusMobileBottomSheet({
   }, [campus.id]);
 
   useEffect(() => {
-    setSheetOpen(true);
-    document.body.classList.add('mobile-sheet-open');
-
     return () => {
-      setSheetOpen(false);
-      document.body.classList.remove('mobile-sheet-open');
       document.body.style.removeProperty('--mobile-sheet-height');
 
       if (isDraggingRef.current) {
@@ -197,27 +197,7 @@ export function CampusMobileBottomSheet({
         setSheetDragging(false);
       }
     };
-  }, [setSheetOpen, setSheetDragging]);
-
-  useEffect(() => {
-    const shield = shieldRef.current;
-    if (!shield) {
-      return;
-    }
-
-    const blockTouch = (event: TouchEvent) => {
-      event.preventDefault();
-      event.stopPropagation();
-    };
-
-    shield.addEventListener('touchstart', blockTouch, { passive: false });
-    shield.addEventListener('touchmove', blockTouch, { passive: false });
-
-    return () => {
-      shield.removeEventListener('touchstart', blockTouch);
-      shield.removeEventListener('touchmove', blockTouch);
-    };
-  }, []);
+  }, [setSheetDragging]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -353,14 +333,11 @@ export function CampusMobileBottomSheet({
     }
   };
 
-  const sheetTop = getViewportHeight() - sheetHeight;
-
   const sheet = (
     <>
       <div
-        ref={shieldRef}
         className="mobile-sheet-portal__shield"
-        style={{ top: sheetTop }}
+        style={{ top: shieldTop }}
         aria-hidden="true"
       />
       <aside
@@ -384,7 +361,11 @@ export function CampusMobileBottomSheet({
         <div className="mobile-sheet__handle" aria-hidden="true" />
       </div>
 
-      <div ref={scrollRef} className="mobile-sheet__scroll">
+      <div
+        ref={scrollRef}
+        className="mobile-sheet__scroll"
+        onTouchMove={(event) => event.stopPropagation()}
+      >
         <p className="mobile-sheet__location">{locationLine}</p>
 
         <button

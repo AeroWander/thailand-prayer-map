@@ -84,7 +84,17 @@ function MapPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [travelTarget, setTravelTarget] = useState<MapNavigationState | null>(initialTravel);
   const [isPanelArrival, setIsPanelArrival] = useState(Boolean(initialTravel));
-  const [isExploreOpen, setIsExploreOpen] = useState(true);
+  const [isExploreOpen, setIsExploreOpen] = useState(() => {
+    if (initialTravel) {
+      return true;
+    }
+
+    if (typeof window !== 'undefined' && window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
+      return false;
+    }
+
+    return true;
+  });
   const [panelView, setPanelView] = useState<ExplorePanelView>(() => {
     if (initialTravel?.type === 'campus') {
       return 'detail';
@@ -166,12 +176,15 @@ function MapPageContent() {
     }
   }, [campuses, selectedCampusId, travelTarget]);
 
-  const openCampusDetail = useCallback((campus: Campus) => {
-    setIsExploreOpen(true);
-    setSelectedCampusId(campus.id);
-    setListScrollCampusId(campus.id);
-    setPanelView('detail');
-  }, []);
+  const openCampusDetail = useCallback(
+    (campus: Campus) => {
+      setIsExploreOpen(!isMobile);
+      setSelectedCampusId(campus.id);
+      setListScrollCampusId(campus.id);
+      setPanelView('detail');
+    },
+    [isMobile],
+  );
 
   const selectCampus = useCallback(
     (campus: Campus) => {

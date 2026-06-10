@@ -8,10 +8,13 @@ function isTouchInSheetZone(clientY: number, sheetOcclusionTop: number): boolean
 
 export function MapSheetTouchLockBridge() {
   const map = useMap();
-  const { isSheetDragging, isSheetOpen, sheetOcclusionTop } = useMapSheetTouchLock();
+  const { isSheetDragging, isSheetOpen, isOverlayTouchActive, sheetOcclusionTop } =
+    useMapSheetTouchLock();
+
+  const lockMapGestures = isSheetDragging || isOverlayTouchActive;
 
   useEffect(() => {
-    if (!isSheetDragging) {
+    if (!lockMapGestures) {
       return;
     }
 
@@ -26,7 +29,7 @@ export function MapSheetTouchLockBridge() {
       map.doubleClickZoom.enable();
       map.boxZoom.enable();
     };
-  }, [isSheetDragging, map]);
+  }, [lockMapGestures, map]);
 
   useEffect(() => {
     if (!isSheetOpen || !Number.isFinite(sheetOcclusionTop)) {

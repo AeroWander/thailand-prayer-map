@@ -1,5 +1,9 @@
+import { useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useMobileMapOverlay } from '../hooks/useMobileMapOverlay';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
+import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
 import { CampusDetailView } from './CampusDetailView';
 import { CampusKey } from './CampusKey';
 import { CampusList } from './CampusList';
@@ -45,65 +49,86 @@ export function CampusExplorePanel({
 }: CampusExplorePanelProps) {
   const { t } = useLanguage();
   const isDetail = view === 'detail' && selectedCampus;
+  const isMobileList = isMobile && !isDetail;
+  const panelRef = useRef<HTMLElement>(null);
+  const { shieldTop } = useMobileMapOverlay({
+    enabled: isMobileList,
+    overlayRef: panelRef,
+  });
 
   if (isMobile && isDetail) {
     return null;
   }
 
-  return (
-    <aside
-      className={
-        animateEntry
-          ? `explore-panel explore-panel--arrival${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}${isMobile ? ' explore-panel--mobile-list' : ''}`
-          : `explore-panel${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}${isMobile ? ' explore-panel--mobile-list' : ''}`
-      }
-      aria-label={t.explore.panelAria}
-    >
-      {isDetail ? (
-        <CampusDetailView
-          campus={selectedCampus}
-          onBack={onBackToList}
-          onClose={onClose}
-          onLogPrayerWalk={onLogPrayerWalk}
+  const panelClassName = animateEntry
+    ? `explore-panel explore-panel--arrival${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}${isMobileList ? ' explore-panel--mobile-list' : ''}`
+    : `explore-panel${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}${isMobileList ? ' explore-panel--mobile-list' : ''}`;
+
+  const panel = (
+    <>
+      {isMobileList && (
+        <div
+          className="mobile-sheet-portal__shield"
+          style={{ top: shieldTop }}
+          aria-hidden="true"
         />
-      ) : (
-        <>
-          <button
-            type="button"
-            className="explore-panel__close"
-            onClick={onClose}
-            aria-label={t.explore.closeAria}
-          >
-            ×
-          </button>
+      )}
+      <aside ref={panelRef} className={panelClassName} aria-label={t.explore.panelAria}>
+        {isDetail ? (
+          <CampusDetailView
+            campus={selectedCampus}
+            onBack={onBackToList}
+            onClose={onClose}
+            onLogPrayerWalk={onLogPrayerWalk}
+          />
+        ) : (
+          <>
+            <button
+              type="button"
+              className="explore-panel__close"
+              onClick={onClose}
+              aria-label={t.explore.closeAria}
+            >
+              ×
+            </button>
 
-          <div className="explore-panel__body">
-            <div className="explore-panel__scroll">
-              <CampusKey />
+            <div className="explore-panel__body">
+              <div
+                className="explore-panel__scroll"
+                onTouchMove={(event) => event.stopPropagation()}
+              >
+                <CampusKey />
 
-              <div className="explore-panel__filters">
-                <RegionFilter
-                  campuses={allCampuses}
-                  value={selectedRegion}
-                  onChange={onRegionChange}
-                />
-                <ProvinceFilter
-                  campuses={allCampuses}
-                  value={selectedProvince}
-                  onChange={onProvinceChange}
+                <div className="explore-panel__filters">
+                  <RegionFilter
+                    campuses={allCampuses}
+                    value={selectedRegion}
+                    onChange={onRegionChange}
+                  />
+                  <ProvinceFilter
+                    campuses={allCampuses}
+                    value={selectedProvince}
+                    onChange={onProvinceChange}
+                  />
+                </div>
+
+                <CampusList
+                  campuses={visibleCampuses}
+                  scrollToCampusId={listScrollCampusId}
+                  onSelectCampus={onSelectCampus}
                 />
               </div>
-
-              <CampusList
-                campuses={visibleCampuses}
-                scrollToCampusId={listScrollCampusId}
-                onSelectCampus={onSelectCampus}
-              />
+              <div className="explore-panel__scroll-fade" aria-hidden="true" />
             </div>
-            <div className="explore-panel__scroll-fade" aria-hidden="true" />
-          </div>
-        </>
-      )}
-    </aside>
+          </>
+        )}
+      </aside>
+    </>
   );
+
+  if (isMobileList) {
+    return createPortal(panel, getMobileSheetPortalElement());
+  }
+
+  return panel;
 }
