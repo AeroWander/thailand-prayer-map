@@ -93,22 +93,9 @@ export function UniversitySearch({
   const isFloating = variant === 'floating';
 
   const handleInputFocus = () => {
-    if (inputRef.current) {
-      inputRef.current.readOnly = false;
-    }
-
     if (value.trim()) {
       setIsOpen(true);
     }
-  };
-
-  const handleFloatingTouchStart = () => {
-    if (!inputRef.current) {
-      return;
-    }
-
-    // Briefly mark read-only so iOS Safari does not auto-zoom on focus.
-    inputRef.current.readOnly = true;
   };
 
   const input = (
@@ -136,7 +123,6 @@ export function UniversitySearch({
         setIsOpen(true);
         setActiveIndex(-1);
       }}
-      onTouchStart={isFloating ? handleFloatingTouchStart : undefined}
       onFocus={handleInputFocus}
       onKeyDown={handleKeyDown}
     />
