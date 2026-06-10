@@ -12,10 +12,8 @@ import {
   MapNavigationGuardProvider,
   useMapNavigationGuard,
 } from '../context/MapNavigationGuard';
-import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
 import { isMapNavigationState, type MapNavigationState } from '../types/mapTravel';
-import { filterCampusesBySearch } from '../utils/searchCampuses';
 
 function findCampusFromTravel(
   campuses: Campus[],
@@ -71,8 +69,6 @@ function MapPageContent() {
   const { clearUserInteracting, markPrayerUpdate } = useMapNavigationGuard();
   const flyToCampus = useMapFlyTo();
   const { campuses, logPrayerWalk } = useCampuses();
-  const { getCampusPrimaryName } = useLanguage();
-
   const initialTravel = isMapNavigationState(location.state) ? location.state : null;
 
   const [selectedProvince, setSelectedProvince] = useState(() =>
@@ -139,10 +135,7 @@ function MapPageContent() {
     });
   }, [campuses, selectedProvince, selectedRegion]);
 
-  const visibleCampuses = useMemo(
-    () => filterCampusesBySearch(regionProvinceFiltered, searchQuery),
-    [regionProvinceFiltered, searchQuery],
-  );
+  const visibleCampuses = regionProvinceFiltered;
 
   const selectedCampus = useMemo(() => {
     if (!selectedCampusId) {
@@ -159,14 +152,13 @@ function MapPageContent() {
   useEffect(() => {
     if (
       selectedCampusId &&
-      !visibleCampuses.some((campus) => campus.id === selectedCampusId) &&
       !campuses.some((campus) => campus.id === selectedCampusId) &&
       !travelTarget
     ) {
       setSelectedCampusId(null);
       setPanelView('list');
     }
-  }, [visibleCampuses, campuses, selectedCampusId, travelTarget]);
+  }, [campuses, selectedCampusId, travelTarget]);
 
   const openCampusDetail = useCallback((campus: Campus) => {
     setIsExploreOpen(true);
@@ -203,10 +195,10 @@ function MapPageContent() {
 
   const handleSearchSelect = useCallback(
     (campus: Campus) => {
-      setSearchQuery(getCampusPrimaryName(campus));
+      setSearchQuery('');
       selectCampus(campus);
     },
-    [getCampusPrimaryName, selectCampus],
+    [selectCampus],
   );
 
   return (
@@ -230,10 +222,11 @@ function MapPageContent() {
           <div className="map-search-overlay">
             <UniversitySearch
               variant="floating"
-              campuses={regionProvinceFiltered}
+              campuses={campuses}
               value={searchQuery}
               onChange={setSearchQuery}
               onSelect={handleSearchSelect}
+              clearOnSelect
             />
           </div>
         </div>
