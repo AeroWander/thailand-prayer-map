@@ -27,8 +27,9 @@ type CampusMobileBottomSheetProps = {
 };
 
 const SNAP_COLLAPSED = 0.3;
-const SNAP_HALF = 0.6;
+const SNAP_HALF = 0.5;
 const DISMISS_THRESHOLD = 0.18;
+const INITIAL_SNAP: SnapPoint = 'half';
 const DRAG_MOVE_THRESHOLD = 8;
 const SPRING_TRANSITION = 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
 
@@ -152,8 +153,8 @@ export function CampusMobileBottomSheet({
     getInstitutionTypeLabel,
   } = useLanguage();
 
-  const [sheetHeight, setSheetHeight] = useState(() => snapHeightFor('collapsed'));
-  const [snapPoint, setSnapPoint] = useState<SnapPoint>('collapsed');
+  const [sheetHeight, setSheetHeight] = useState(() => snapHeightFor(INITIAL_SNAP));
+  const [snapPoint, setSnapPoint] = useState<SnapPoint>(INITIAL_SNAP);
   const [isDragging, setIsDragging] = useState(false);
   const [isDragZonePressed, setIsDragZonePressed] = useState(false);
   const [isPopping, setIsPopping] = useState(false);
@@ -212,8 +213,8 @@ export function CampusMobileBottomSheet({
   }, [sheetHeight, reportSheetTop]);
 
   useEffect(() => {
-    setSheetHeight(snapHeightFor('collapsed'));
-    setSnapPoint('collapsed');
+    setSheetHeight(snapHeightFor(INITIAL_SNAP));
+    setSnapPoint(INITIAL_SNAP);
   }, [campus.id]);
 
   useEffect(() => {
