@@ -2548,16 +2548,24 @@ html.lang-th .hero-headline {
 
   .mobile-sheet__peek-hint {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 0.35rem 0 0.6rem;
-    color: #c4c9d4;
+    gap: 0.2rem;
+    padding: 0.35rem 0 0.75rem;
+    color: #b0b5bf;
     animation: peek-bob 1.8s ease-in-out infinite;
   }
 
   .mobile-sheet__peek-hint--hidden {
     visibility: hidden;
     animation: none;
+  }
+
+  .mobile-sheet__peek-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   @keyframes peek-bob {

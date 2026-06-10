@@ -76,6 +76,7 @@ export type TranslationSchema = {
     website: string;
     campusInfo: string;
     scrollForMore: string;
+    moreInfo: string;
     prayerPromptPrayed: string;
     prayerHeading: string;
     joinOthersPraying: string;
@@ -207,6 +208,7 @@ export const translations: Record<Language, TranslationSchema> = {
       website: 'Website',
       campusInfo: 'Campus info',
       scrollForMore: 'Scroll for more',
+      moreInfo: 'More info',
       prayerPromptPrayed:
         'This campus has been covered in prayer. Thank you for praying here.',
       prayerHeading: 'Prayer',
@@ -408,6 +410,7 @@ export const translations: Record<Language, TranslationSchema> = {
       website: 'เว็บไซต์',
       campusInfo: 'ข้อมูลมหาวิทยาลัย',
       scrollForMore: 'เลื่อนเพื่อดูเพิ่มเติม',
+      moreInfo: 'ข้อมูลเพิ่มเติม',
       prayerPromptPrayed:
         'มหาวิทยาลัยนี้ได้รับการอธิษฐานแล้ว ขอบคุณที่อธิษฐานที่นี่',
       prayerHeading: 'อธิษฐาน',
