@@ -9,6 +9,7 @@ type UniversitySearchProps = {
   onChange: (query: string) => void;
   onSelect: (campus: Campus) => void;
   variant?: 'inline' | 'floating';
+  clearOnSelect?: boolean;
 };
 
 export function UniversitySearch({
@@ -17,8 +18,9 @@ export function UniversitySearch({
   onChange,
   onSelect,
   variant = 'inline',
+  clearOnSelect = false,
 }: UniversitySearchProps) {
-  const { t, getCampusPrimaryName, getProvinceLabel } = useLanguage();
+  const { t, getCampusPrimaryName, getProvinceLabel, getRegionLabel } = useLanguage();
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +40,7 @@ export function UniversitySearch({
   };
 
   const selectCampus = (campus: Campus) => {
-    onChange(getCampusPrimaryName(campus));
+    onChange(clearOnSelect ? '' : getCampusPrimaryName(campus));
     closeDropdown();
     onSelect(campus);
     inputRef.current?.blur();
@@ -65,19 +67,26 @@ export function UniversitySearch({
       return;
     }
 
-    if (!showDropdown || results.length === 0) {
+    if (event.key === 'ArrowDown' && showDropdown && results.length > 0) {
+      event.preventDefault();
+      setActiveIndex((index) => (index + 1) % results.length);
       return;
     }
 
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setActiveIndex((index) => (index + 1) % results.length);
-    } else if (event.key === 'ArrowUp') {
+    if (event.key === 'ArrowUp' && showDropdown && results.length > 0) {
       event.preventDefault();
       setActiveIndex((index) => (index <= 0 ? results.length - 1 : index - 1));
-    } else if (event.key === 'Enter' && activeIndex >= 0) {
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      if (!showDropdown || results.length === 0) {
+        return;
+      }
+
       event.preventDefault();
-      selectCampus(results[activeIndex]);
+      const index = activeIndex >= 0 ? activeIndex : 0;
+      selectCampus(results[index]);
     }
   };
 
@@ -197,7 +206,7 @@ export function UniversitySearch({
                     {getCampusPrimaryName(campus)}
                   </span>
                   <span className="university-search__option-province">
-                    {getProvinceLabel(campus.province)}
+                    {getProvinceLabel(campus.province)} · {getRegionLabel(campus.region)}
                   </span>
                 </button>
               </li>
