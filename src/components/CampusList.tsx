@@ -5,11 +5,11 @@ import type { Campus } from '../types/campus';
 
 type CampusListProps = {
   campuses: Campus[];
-  selectedCampusId: string | null;
+  scrollToCampusId: string | null;
   onSelectCampus: (campus: Campus) => void;
 };
 
-export function CampusList({ campuses, selectedCampusId, onSelectCampus }: CampusListProps) {
+export function CampusList({ campuses, scrollToCampusId, onSelectCampus }: CampusListProps) {
   const {
     t,
     formatNumber,
@@ -30,19 +30,19 @@ export function CampusList({ campuses, selectedCampusId, onSelectCampus }: Campu
   );
 
   useEffect(() => {
-    if (!selectedCampusId) {
+    if (!scrollToCampusId) {
       return;
     }
 
-    const item = itemRefs.current.get(selectedCampusId);
-    item?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [selectedCampusId, sortedCampuses]);
+    const item = itemRefs.current.get(scrollToCampusId);
+    requestAnimationFrame(() => {
+      item?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    });
+  }, [scrollToCampusId, sortedCampuses]);
 
   return (
     <ul className="campus-list" aria-label={t.explore.campusListAria}>
       {sortedCampuses.map((campus) => {
-        const isSelected = selectedCampusId === campus.id;
-
         return (
           <li
             key={campus.id}
@@ -56,13 +56,8 @@ export function CampusList({ campuses, selectedCampusId, onSelectCampus }: Campu
           >
             <button
               type="button"
-              className={
-                isSelected
-                  ? 'campus-list__item campus-list__item--selected'
-                  : 'campus-list__item'
-              }
+              className="campus-list__item"
               onClick={() => onSelectCampus(campus)}
-              aria-current={isSelected ? 'true' : undefined}
             >
               <span className="campus-list__main">
                 <span className="campus-list__name">{getCampusPrimaryName(campus)}</span>

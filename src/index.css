@@ -935,9 +935,8 @@ html.lang-th {
   transition: background-color 0.15s ease;
 }
 
-.campus-list__item:hover,
-.campus-list__item--selected {
-  background: #f5f8fc;
+.campus-list__item:hover {
+  background: #f0f5ff;
 }
 
 .campus-list__main {

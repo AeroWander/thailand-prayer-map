@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { MapContainer, TileLayer, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { useMapNavigationGuard } from '../context/MapNavigationGuard';
@@ -7,7 +7,7 @@ import type { MapNavigationState } from '../types/mapTravel';
 import { CampusMapMarker } from './CampusMapMarker';
 import { ProvinceBoundariesLayer } from './ProvinceBoundariesLayer';
 import { MapBoundsController } from './MapBoundsController';
-import { MapMainCampusFocusController } from './MapMainCampusFocusController';
+import { MapFlyToBridge } from '../context/MapFlyToContext';
 import { MapTravelController } from './MapTravelController';
 import { MapZoomWatcher } from './MapZoomWatcher';
 import { THAILAND_CENTER, THAILAND_ZOOM } from '../utils/mapBounds';
@@ -36,11 +36,6 @@ export function MapView({
   const { markUserInteracting } = useMapNavigationGuard();
   const [mapZoom, setMapZoom] = useState(THAILAND_ZOOM);
 
-  const selectedCampus = useMemo(
-    () => campuses.find((campus) => campus.id === selectedCampusId) ?? null,
-    [campuses, selectedCampusId],
-  );
-
   const handleMarkerClick = (campus: Campus, event: L.LeafletMouseEvent) => {
     L.DomEvent.stopPropagation(event.originalEvent);
     markUserInteracting();
@@ -49,9 +44,6 @@ export function MapView({
 
   const suppressBoundsUpdate = Boolean(
     travelTarget || suppressMapAnimations || selectedCampusId,
-  );
-  const mainMapFocusEnabled = Boolean(
-    selectedCampus && !travelTarget && !suppressMapAnimations,
   );
 
   return (
@@ -72,12 +64,13 @@ export function MapView({
           suppressBoundsUpdate={suppressBoundsUpdate}
         />
         {travelTarget && onTravelComplete && (
-          <MapTravelController travel={travelTarget} onComplete={onTravelComplete} />
+          <MapTravelController
+            travel={travelTarget}
+            campuses={campuses}
+            onComplete={onTravelComplete}
+          />
         )}
-        <MapMainCampusFocusController
-          campus={selectedCampus}
-          enabled={mainMapFocusEnabled}
-        />
+        <MapFlyToBridge />
         <MapZoomWatcher onZoomChange={setMapZoom} />
         <TileLayer
           attribution='&copy; OpenStreetMap contributors &copy; CARTO'

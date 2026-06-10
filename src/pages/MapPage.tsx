@@ -7,6 +7,7 @@ import {
 import { MapView } from '../components/MapView';
 import { UniversitySearch } from '../components/UniversitySearch';
 import { useCampuses } from '../context/CampusContext';
+import { MapFlyToProvider, useMapFlyTo } from '../context/MapFlyToContext';
 import {
   MapNavigationGuardProvider,
   useMapNavigationGuard,
@@ -40,6 +41,7 @@ function applyArrivalUi(
     setIsExploreOpen: (open: boolean) => void;
     setPanelView: (view: ExplorePanelView) => void;
     setSelectedCampusId: (id: string | null) => void;
+    setListScrollCampusId: (id: string | null) => void;
     setSelectedProvince: (province: string) => void;
     setSelectedRegion: (region: string) => void;
     setIsPanelArrival: (arrival: boolean) => void;
@@ -52,6 +54,7 @@ function applyArrivalUi(
     const campus = findCampusFromTravel(campuses, target);
     setters.setPanelView('detail');
     setters.setSelectedCampusId(campus?.id ?? null);
+    setters.setListScrollCampusId(campus?.id ?? null);
     return;
   }
 
@@ -59,12 +62,14 @@ function applyArrivalUi(
   setters.setSelectedRegion('All');
   setters.setPanelView('list');
   setters.setSelectedCampusId(null);
+  setters.setListScrollCampusId(null);
 }
 
 function MapPageContent() {
   const location = useLocation();
   const navigate = useNavigate();
   const { clearUserInteracting, markPrayerUpdate } = useMapNavigationGuard();
+  const flyToCampus = useMapFlyTo();
   const { campuses, logPrayerWalk } = useCampuses();
   const { getCampusPrimaryName } = useLanguage();
 
@@ -90,6 +95,12 @@ function MapPageContent() {
     }
     return null;
   });
+  const [listScrollCampusId, setListScrollCampusId] = useState<string | null>(() => {
+    if (initialTravel?.type === 'campus') {
+      return findCampusFromTravel(campuses, initialTravel)?.id ?? initialTravel.campusId ?? null;
+    }
+    return null;
+  });
 
   useEffect(() => {
     if (!isMapNavigationState(location.state)) {
@@ -100,6 +111,7 @@ function MapPageContent() {
       setIsExploreOpen,
       setPanelView,
       setSelectedCampusId,
+      setListScrollCampusId,
       setSelectedProvince,
       setSelectedRegion,
       setIsPanelArrival,
@@ -159,8 +171,17 @@ function MapPageContent() {
   const openCampusDetail = useCallback((campus: Campus) => {
     setIsExploreOpen(true);
     setSelectedCampusId(campus.id);
+    setListScrollCampusId(campus.id);
     setPanelView('detail');
   }, []);
+
+  const selectCampus = useCallback(
+    (campus: Campus) => {
+      openCampusDetail(campus);
+      flyToCampus(campus);
+    },
+    [flyToCampus, openCampusDetail],
+  );
 
   const showAllCampuses = useCallback(() => {
     setPanelView('list');
@@ -183,9 +204,9 @@ function MapPageContent() {
   const handleSearchSelect = useCallback(
     (campus: Campus) => {
       setSearchQuery(getCampusPrimaryName(campus));
-      openCampusDetail(campus);
+      selectCampus(campus);
     },
-    [getCampusPrimaryName, openCampusDetail],
+    [getCampusPrimaryName, selectCampus],
   );
 
   return (
@@ -201,7 +222,7 @@ function MapPageContent() {
             selectedRegion={selectedRegion}
             selectedProvince={selectedProvince}
             selectedCampusId={selectedCampusId}
-            onSelectCampus={openCampusDetail}
+            onSelectCampus={selectCampus}
             travelTarget={travelTarget}
             onTravelComplete={handleTravelComplete}
             suppressMapAnimations={isPanelArrival}
@@ -223,13 +244,13 @@ function MapPageContent() {
             visibleCampuses={visibleCampuses}
             view={panelView}
             selectedCampus={selectedCampus}
-            selectedCampusId={selectedCampusId}
+            listScrollCampusId={listScrollCampusId}
             selectedRegion={selectedRegion}
             selectedProvince={selectedProvince}
             animateEntry={isPanelArrival}
             onRegionChange={setSelectedRegion}
             onProvinceChange={setSelectedProvince}
-            onSelectCampus={openCampusDetail}
+            onSelectCampus={selectCampus}
             onBackToList={showAllCampuses}
             onClose={closeExplore}
             onLogPrayerWalk={handleLogPrayerWalk}
@@ -243,7 +264,9 @@ function MapPageContent() {
 export function MapPage() {
   return (
     <MapNavigationGuardProvider>
-      <MapPageContent />
+      <MapFlyToProvider>
+        <MapPageContent />
+      </MapFlyToProvider>
     </MapNavigationGuardProvider>
   );
 }

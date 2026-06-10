@@ -2,38 +2,40 @@ import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useMapNavigationGuard } from '../context/MapNavigationGuard';
+import type { Campus } from '../types/campus';
 import type { MapNavigationState } from '../types/mapTravel';
-import { THAILAND_CENTER, THAILAND_ZOOM } from '../utils/mapBounds';
+import {
+  fitMapToCampuses,
+  hasReachedCampusNavigation,
+  MAP_FLY_DURATION,
+  navigateToCampus,
+  THAILAND_CENTER,
+  THAILAND_ZOOM,
+} from '../utils/mapBounds';
 
-const TRAVEL_DURATION = 1.8;
-const CAMPUS_TRAVEL_ZOOM = 14;
-const PROVINCE_TRAVEL_ZOOM = 9;
 const ARRIVAL_DISTANCE_METERS = 2500;
-
-const flyOptions = {
-  animate: true,
-  duration: TRAVEL_DURATION,
-  easeLinearity: 0.15,
-};
 
 type MapTravelControllerProps = {
   travel: MapNavigationState;
+  campuses: Campus[];
   onComplete: () => void;
 };
 
-function hasReachedTravelTarget(
+function hasReachedProvinceNavigation(
   map: L.Map,
   targetLatLng: L.LatLng,
-  targetZoom: number,
 ): boolean {
   const center = map.getCenter();
   const distance = center.distanceTo(targetLatLng);
-  const zoomDelta = Math.abs(map.getZoom() - targetZoom);
 
-  return distance <= ARRIVAL_DISTANCE_METERS && zoomDelta < 0.5;
+  return distance <= ARRIVAL_DISTANCE_METERS && map.getBounds().contains(targetLatLng);
 }
 
-export function MapTravelController({ travel, onComplete }: MapTravelControllerProps) {
+export function MapTravelController({
+  travel,
+  campuses,
+  onComplete,
+}: MapTravelControllerProps) {
   const map = useMap();
   const { hasNavigatedRef } = useMapNavigationGuard();
   const hasAnimated = useRef(false);
@@ -52,7 +54,7 @@ export function MapTravelController({ travel, onComplete }: MapTravelControllerP
     let layoutTimer: number | null = null;
 
     const targetLatLng = L.latLng(travel.lat, travel.lng);
-    const targetZoom = travel.type === 'campus' ? CAMPUS_TRAVEL_ZOOM : PROVINCE_TRAVEL_ZOOM;
+    const provinceCampuses = campuses.filter((campus) => campus.province === travel.province);
 
     const finishTravel = () => {
       if (cancelled || !flyStarted) {
@@ -85,7 +87,12 @@ export function MapTravelController({ travel, onComplete }: MapTravelControllerP
           return;
         }
 
-        if (!hasReachedTravelTarget(map, targetLatLng, targetZoom)) {
+        const reached =
+          travel.type === 'campus'
+            ? hasReachedCampusNavigation(map, targetLatLng)
+            : hasReachedProvinceNavigation(map, targetLatLng);
+
+        if (!reached) {
           return;
         }
 
@@ -100,7 +107,18 @@ export function MapTravelController({ travel, onComplete }: MapTravelControllerP
         }
 
         flyStarted = true;
-        map.flyTo(targetLatLng, targetZoom, flyOptions);
+
+        if (travel.type === 'campus') {
+          navigateToCampus(map, { lat: travel.lat, lng: travel.lng });
+          return;
+        }
+
+        if (provinceCampuses.length > 0) {
+          fitMapToCampuses(map, provinceCampuses);
+          return;
+        }
+
+        navigateToCampus(map, { lat: travel.lat, lng: travel.lng });
       }, 80);
     };
 
@@ -112,8 +130,15 @@ export function MapTravelController({ travel, onComplete }: MapTravelControllerP
       requestAnimationFrame(runArrival);
     });
 
+    const fallbackTimer = window.setTimeout(() => {
+      if (!cancelled && flyStarted) {
+        finishTravel();
+      }
+    }, MAP_FLY_DURATION * 1000 + 250);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(fallbackTimer);
       if (layoutTimer !== null) {
         window.clearTimeout(layoutTimer);
       }
@@ -124,7 +149,7 @@ export function MapTravelController({ travel, onComplete }: MapTravelControllerP
         hasNavigatedRef.current = false;
       }
     };
-  }, [travel, map, hasNavigatedRef]);
+  }, [travel, campuses, map, hasNavigatedRef]);
 
   return null;
 }

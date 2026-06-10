@@ -13,7 +13,7 @@ type CampusExplorePanelProps = {
   visibleCampuses: Campus[];
   view: ExplorePanelView;
   selectedCampus: Campus | null;
-  selectedCampusId: string | null;
+  listScrollCampusId: string | null;
   selectedRegion: string;
   selectedProvince: string;
   animateEntry?: boolean;
@@ -30,7 +30,7 @@ export function CampusExplorePanel({
   visibleCampuses,
   view,
   selectedCampus,
-  selectedCampusId,
+  listScrollCampusId,
   selectedRegion,
   selectedProvince,
   animateEntry = false,
@@ -90,7 +90,7 @@ export function CampusExplorePanel({
 
               <CampusList
                 campuses={visibleCampuses}
-                selectedCampusId={selectedCampusId}
+                scrollToCampusId={listScrollCampusId}
                 onSelectCampus={onSelectCampus}
               />
             </div>
