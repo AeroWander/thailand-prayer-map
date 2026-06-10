@@ -278,7 +278,10 @@ html.lang-th {
   font-size: 0.9375rem;
   font-weight: 500;
   text-decoration: none;
-  transition: color 0.15s ease;
+  /* No transition — instant color change avoids iOS Safari paint-deferral bug
+     where JS-driven class changes aren't repainted until the next scroll event. */
+  will-change: color;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .site-header__nav-link:hover {
