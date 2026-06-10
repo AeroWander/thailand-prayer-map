@@ -8,6 +8,7 @@ import { CampusMapMarker } from './CampusMapMarker';
 import { ProvinceBoundariesLayer } from './ProvinceBoundariesLayer';
 import { MapBoundsController } from './MapBoundsController';
 import { MapFlyToBridge } from '../context/MapFlyToContext';
+import { MapResizeController } from './MapResizeController';
 import { MapSheetTouchLockBridge } from './MapSheetTouchLockBridge';
 import { MapTravelController } from './MapTravelController';
 import { MapZoomWatcher } from './MapZoomWatcher';
@@ -72,6 +73,7 @@ export function MapView({
           />
         )}
         <MapFlyToBridge />
+        <MapResizeController />
         <MapSheetTouchLockBridge />
         <MapZoomWatcher onZoomChange={setMapZoom} />
         <TileLayer

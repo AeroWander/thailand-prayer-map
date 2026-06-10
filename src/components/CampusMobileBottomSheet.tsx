@@ -16,7 +16,7 @@ import {
 } from '../utils/bottomSheetGestures';
 import { buildCampusPrayerPrompt } from '../utils/campusPrayerPrompt';
 import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
-import { getLayoutViewportHeight } from '../utils/viewport';
+import { getLayoutViewportHeight, shouldIgnoreViewportResize } from '../utils/viewport';
 import { CampusMiniMap } from './CampusMiniMap';
 
 type CampusMobileBottomSheetProps = {
@@ -229,6 +229,10 @@ export function CampusMobileBottomSheet({
 
   useEffect(() => {
     const handleResize = () => {
+      if (shouldIgnoreViewportResize()) {
+        return;
+      }
+
       setSheetHeight(snapHeightFor(snapPoint));
     };
 

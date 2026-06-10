@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
 import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
-import { getLayoutViewportHeight } from '../utils/viewport';
+import { getLayoutViewportHeight, shouldIgnoreViewportResize } from '../utils/viewport';
 
 type UseMobileMapOverlayOptions = {
   enabled: boolean;
@@ -25,6 +25,10 @@ export function useMobileMapOverlay({
   const shieldTop = occlusionTop ?? measuredOcclusionTop;
 
   const measureOverlay = useCallback(() => {
+    if (shouldIgnoreViewportResize()) {
+      return;
+    }
+
     const element = overlayRef.current;
     if (!element) {
       return;

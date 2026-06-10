@@ -413,9 +413,11 @@ html.lang-th {
   background: transparent;
   color: #1a1a1a;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 16px;
   line-height: 1.4;
   box-shadow: none;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
   -webkit-appearance: none;
   appearance: none;
 }
