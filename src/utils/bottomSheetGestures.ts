@@ -1,14 +1,14 @@
-export type SnapPoint = 'collapsed' | 'half' | 'full';
+export type SnapPoint = 'collapsed' | 'full';
 
-const FLICK_VELOCITY = 0.45;
+const FLICK_VELOCITY = 0.4; // px/ms
 const SCROLL_TOP_EPSILON = 2;
 
 export type SnapHeights = {
   collapsed: number;
-  half: number;
   full: number;
 };
 
+/** Nearest of the two snap points by absolute distance. */
 export function nearestSnap(
   height: number,
   heights: SnapHeights,
@@ -19,27 +19,15 @@ export function nearestSnap(
     return 'dismiss';
   }
 
-  const candidates: Array<{ point: SnapPoint; height: number }> = [
-    { point: 'collapsed', height: heights.collapsed },
-    { point: 'half', height: heights.half },
-    { point: 'full', height: heights.full },
-  ];
-
-  let closest = candidates[0];
-  let minDistance = Math.abs(height - closest.height);
-
-  for (const candidate of candidates.slice(1)) {
-    const distance = Math.abs(height - candidate.height);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closest = candidate;
-    }
-  }
-
-  return closest.point;
+  const distToCollapsed = Math.abs(height - heights.collapsed);
+  const distToFull = Math.abs(height - heights.full);
+  return distToCollapsed <= distToFull ? 'collapsed' : 'full';
 }
 
-/** Positive velocity = finger moved up = sheet expands. */
+/**
+ * Resolve snap destination taking finger velocity into account.
+ * Positive velocity = finger moved upward = sheet should expand.
+ */
 export function resolveSnapWithVelocity(
   height: number,
   velocity: number,
@@ -48,29 +36,36 @@ export function resolveSnapWithVelocity(
   dismissThreshold: number,
   viewportHeight: number,
 ): SnapPoint | 'dismiss' {
-  const order: SnapPoint[] = ['collapsed', 'half', 'full'];
-  const currentIndex = order.indexOf(currentSnap);
-
   if (Math.abs(velocity) >= FLICK_VELOCITY) {
     if (velocity > 0) {
-      if (currentIndex < order.length - 1) {
-        return order[currentIndex + 1];
-      }
       return 'full';
     }
-
-    if (height < viewportHeight * dismissThreshold) {
+    // Flicking downward
+    if (currentSnap === 'collapsed' || height < viewportHeight * dismissThreshold) {
       return 'dismiss';
     }
-
-    if (currentIndex > 0) {
-      return order[currentIndex - 1];
-    }
-
-    return 'dismiss';
+    return 'collapsed';
   }
 
   return nearestSnap(height, heights, dismissThreshold, viewportHeight);
+}
+
+/**
+ * Return a spring-curve CSS transition string scaled to the release velocity.
+ * Faster flick → shorter, snappier animation. Slow drag → longer, heavier feel.
+ */
+export function springTransitionForVelocity(velocity: number): string {
+  const absV = Math.abs(velocity); // px/ms
+  let duration: number;
+  if (absV > 1.5) {
+    duration = 0.22;
+  } else if (absV > 0.6) {
+    duration = 0.3;
+  } else {
+    duration = 0.42;
+  }
+  // cubic-bezier(0.32, 0.72, 0, 1) is the standard iOS bottom-sheet spring approximation
+  return `height ${duration}s cubic-bezier(0.32, 0.72, 0, 1)`;
 }
 
 export function isAtFullExpansion(height: number, maxHeight: number): boolean {
@@ -97,15 +92,18 @@ export type ScrollGestureState = {
   velocity: number;
 };
 
-export function createScrollGestureState(clientY: number, startHeight: number, startScrollTop: number): ScrollGestureState {
-  const now = Date.now();
+export function createScrollGestureState(
+  clientY: number,
+  startHeight: number,
+  startScrollTop: number,
+): ScrollGestureState {
   return {
     mode: 'undecided',
     startY: clientY,
     startHeight,
     startScrollTop,
     lastY: clientY,
-    lastTime: now,
+    lastTime: Date.now(),
     velocity: 0,
   };
 }
@@ -113,11 +111,9 @@ export function createScrollGestureState(clientY: number, startHeight: number, s
 export function updateGestureVelocity(state: ScrollGestureState, clientY: number): void {
   const now = Date.now();
   const elapsed = now - state.lastTime;
-
   if (elapsed > 0) {
     state.velocity = (state.lastY - clientY) / elapsed;
   }
-
   state.lastY = clientY;
   state.lastTime = now;
 }
@@ -133,6 +129,7 @@ export function decideScrollGestureMode(
   const totalDelta = clientY - state.startY;
   const stepDelta = clientY - state.lastY;
 
+  // Already scrolled into content → content scroll wins until back at top
   if (atFullExpansion && !isScrollAtTop(scrollTop)) {
     return 'content';
   }
@@ -145,6 +142,7 @@ export function decideScrollGestureMode(
     return 'sheet';
   }
 
+  // At full expansion, at scroll top: downward drag collapses sheet
   if (stepDelta > 0) {
     return 'sheet';
   }

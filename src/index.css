@@ -2538,17 +2538,13 @@ html.lang-th .hero-headline {
   }
 
   .mobile-sheet__mark-btn {
+    display: block;
     width: calc(100% - 2.5rem);
-    margin: 0.5rem 0 0;
-  }
-
-  .mobile-sheet__scroll > .mobile-sheet__mark-btn {
-    margin-left: 1.25rem;
-    margin-right: 1.25rem;
+    margin: 0.5rem 1.25rem 0.75rem;
   }
 
   .mobile-sheet__prayer {
-    margin-top: 0.25rem;
+    margin: 0.25rem 1.25rem 0;
   }
 
   .mobile-sheet__mini-map-wrap {

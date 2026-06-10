@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
 import { useMobileMapOverlay } from '../hooks/useMobileMapOverlay';
@@ -10,6 +10,7 @@ import {
   isAtFullExpansion,
   isScrollAtTop,
   resolveSnapWithVelocity,
+  springTransitionForVelocity,
   updateGestureVelocity,
   type ScrollGestureState,
   type SnapPoint,
@@ -26,12 +27,9 @@ type CampusMobileBottomSheetProps = {
   onSheetTopChange: (sheetTop: number) => void;
 };
 
-const SNAP_COLLAPSED = 0.3;
-const SNAP_HALF = 0.5;
-const DISMISS_THRESHOLD = 0.18;
-const INITIAL_SNAP: SnapPoint = 'half';
+// How far below dismiss line before we actually dismiss (fraction of viewport)
+const DISMISS_THRESHOLD = 0.15;
 const DRAG_MOVE_THRESHOLD = 8;
-const SPRING_TRANSITION = 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
 
 function websiteLabel(url: string): string {
   try {
@@ -50,47 +48,19 @@ function getSiteHeaderHeight(): number {
   if (header) {
     return header.getBoundingClientRect().height;
   }
-
   const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   const headerHeightValue = getComputedStyle(document.documentElement)
     .getPropertyValue('--header-height')
     .trim();
   const remMatch = headerHeightValue.match(/^([\d.]+)rem$/);
-
   if (remMatch) {
     return parseFloat(remMatch[1]) * rootFontSize;
   }
-
   return rootFontSize * 7.5;
 }
 
-/** Maximum sheet height — fills the viewport below the site header. */
 function getMaxSheetHeight(): number {
   return Math.max(0, getViewportHeight() - getSiteHeaderHeight());
-}
-
-function snapHeightFor(point: SnapPoint): number {
-  const vh = getViewportHeight();
-  const maxHeight = getMaxSheetHeight();
-
-  if (point === 'collapsed') {
-    return Math.min(vh * SNAP_COLLAPSED, maxHeight);
-  }
-  if (point === 'half') {
-    return Math.min(vh * SNAP_HALF, maxHeight);
-  }
-  return maxHeight;
-}
-
-function getSnapHeights() {
-  const vh = getViewportHeight();
-  const maxHeight = getMaxSheetHeight();
-
-  return {
-    collapsed: Math.min(vh * SNAP_COLLAPSED, maxHeight),
-    half: Math.min(vh * SNAP_HALF, maxHeight),
-    full: maxHeight,
-  };
 }
 
 function PrayerHandsIcon() {
@@ -153,30 +123,36 @@ export function CampusMobileBottomSheet({
     getInstitutionTypeLabel,
   } = useLanguage();
 
-  const [sheetHeight, setSheetHeight] = useState(() => snapHeightFor(INITIAL_SNAP));
-  const [snapPoint, setSnapPoint] = useState<SnapPoint>(INITIAL_SNAP);
+  // collapsedHeight is measured from the DOM so it fits whatever content is rendered
+  const [collapsedHeight, setCollapsedHeight] = useState(180);
+  const [sheetHeight, setSheetHeight] = useState(0); // starts at 0 → animates in
+  const [snapPoint, setSnapPoint] = useState<SnapPoint>('collapsed');
   const [isDragging, setIsDragging] = useState(false);
   const [isDragZonePressed, setIsDragZonePressed] = useState(false);
   const [isPopping, setIsPopping] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
   const { setSheetDragging } = useMapSheetTouchLock();
-  const dragStartYRef = useRef(0);
-  const dragStartHeightRef = useRef(0);
+
+  const collapsedContentRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLElement>(null);
   const sheetHeightRef = useRef(sheetHeight);
+  const collapsedHeightRef = useRef(collapsedHeight);
+  const snapPointRef = useRef<SnapPoint>('collapsed');
   const isDraggingRef = useRef(false);
   const dragMovedRef = useRef(false);
   const dragPointerTargetRef = useRef<EventTarget | null>(null);
   const dragVelocityRef = useRef(0);
   const dragLastMoveRef = useRef({ y: 0, time: 0 });
   const scrollGestureRef = useRef<ScrollGestureState | null>(null);
-  const snapPointRef = useRef(snapPoint);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLElement>(null);
-
-  snapPointRef.current = snapPoint;
+  const transitionRef = useRef('none');
 
   sheetHeightRef.current = sheetHeight;
+  collapsedHeightRef.current = collapsedHeight;
+  snapPointRef.current = snapPoint;
+
+  const isExpanded = snapPoint === 'full';
 
   const secondaryName = getCampusSecondaryName(campus);
   const prayerPrompt = campus.prayedFor
@@ -196,10 +172,6 @@ export function CampusMobileBottomSheet({
     occlusionTop: sheetTop,
   });
 
-  const heightRatio = sheetHeight / getViewportHeight();
-  const showHalfContent = heightRatio >= 0.45 || snapPoint === 'half' || snapPoint === 'full';
-  const showFullContent = heightRatio >= 0.75 || snapPoint === 'full';
-
   const reportSheetTop = useCallback(
     (height: number) => {
       onSheetTopChange(getViewportHeight() - height);
@@ -208,19 +180,95 @@ export function CampusMobileBottomSheet({
     [onSheetTopChange],
   );
 
-  useEffect(() => {
-    reportSheetTop(sheetHeight);
-  }, [sheetHeight, reportSheetTop]);
+  // Measure collapsed content height from the DOM
+  const measureCollapsedHeight = useCallback(() => {
+    const el = collapsedContentRef.current;
+    if (!el) return;
+    const h = el.getBoundingClientRect().height;
+    if (h > 0) {
+      setCollapsedHeight(h);
+    }
+  }, []);
+
+  // Measure on first render and whenever campus changes (secondary name may appear/disappear)
+  useLayoutEffect(() => {
+    measureCollapsedHeight();
+  }, [campus.id, measureCollapsedHeight]);
 
   useEffect(() => {
-    setSheetHeight(snapHeightFor(INITIAL_SNAP));
-    setSnapPoint(INITIAL_SNAP);
+    const el = collapsedContentRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(measureCollapsedHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measureCollapsedHeight]);
+
+  const snapHeightFor = useCallback(
+    (point: SnapPoint): number => {
+      return point === 'full' ? getMaxSheetHeight() : collapsedHeightRef.current;
+    },
+    [],
+  );
+
+  const getSnapHeights = useCallback(
+    () => ({
+      collapsed: collapsedHeightRef.current,
+      full: getMaxSheetHeight(),
+    }),
+    [],
+  );
+
+  const applyTransition = useCallback((transition: string) => {
+    transitionRef.current = transition;
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = transition;
+    }
+  }, []);
+
+  const snapTo = useCallback(
+    (point: SnapPoint, velocity = 0) => {
+      const targetHeight = point === 'full' ? getMaxSheetHeight() : collapsedHeightRef.current;
+      const distance = Math.abs(targetHeight - sheetHeightRef.current);
+      const transition = distance < 4 ? 'none' : springTransitionForVelocity(velocity);
+      applyTransition(transition);
+      setSnapPoint(point);
+      setSheetHeight(targetHeight);
+      reportSheetTop(targetHeight);
+    },
+    [applyTransition, reportSheetTop],
+  );
+
+  // Animate in from bottom on mount
+  useLayoutEffect(() => {
+    const colH = collapsedContentRef.current?.getBoundingClientRect().height ?? 180;
+    setCollapsedHeight(colH);
+    // Start at 0 then animate to collapsed on next tick so the transition fires
+    setSheetHeight(0);
+    const raf = requestAnimationFrame(() => {
+      applyTransition(springTransitionForVelocity(0));
+      setSheetHeight(colH);
+    });
+    return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reset to collapsed when campus changes
+  useEffect(() => {
+    const colH = collapsedContentRef.current?.getBoundingClientRect().height ?? collapsedHeightRef.current;
+    applyTransition(springTransitionForVelocity(0));
+    setSnapPoint('collapsed');
+    setSheetHeight(colH);
+    reportSheetTop(colH);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  // campus.id is the only dep that should trigger this
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campus.id]);
 
   useEffect(() => {
     return () => {
       document.body.style.removeProperty('--mobile-sheet-height');
-
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
         setSheetDragging(false);
@@ -228,71 +276,47 @@ export function CampusMobileBottomSheet({
     };
   }, [setSheetDragging]);
 
+  // Keep height correct on screen resize (rotation etc.)
   useEffect(() => {
     const handleResize = () => {
-      if (shouldIgnoreViewportResize()) {
-        return;
-      }
-
-      setSheetHeight(snapHeightFor(snapPoint));
+      if (shouldIgnoreViewportResize()) return;
+      snapTo(snapPointRef.current);
     };
-
     window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [snapPoint]);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [snapTo]);
 
+  // Scroll hint logic
   useEffect(() => {
     const scrollEl = scrollRef.current;
-    if (!scrollEl || !showFullContent) {
+    if (!scrollEl || !isExpanded) {
       setShowScrollHint(false);
       return;
     }
-
     const updateHint = () => {
       const canScroll = scrollEl.scrollHeight > scrollEl.clientHeight + 4;
-      const nearBottom =
-        scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 12;
+      const nearBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 12;
       setShowScrollHint(canScroll && !nearBottom);
     };
-
     updateHint();
     scrollEl.addEventListener('scroll', updateHint, { passive: true });
     const observer = new ResizeObserver(updateHint);
     observer.observe(scrollEl);
-
     return () => {
       scrollEl.removeEventListener('scroll', updateHint);
       observer.disconnect();
     };
-  }, [showFullContent, campus.id, sheetHeight]);
+  }, [isExpanded, campus.id, sheetHeight]);
 
-  const snapTo = useCallback(
-    (point: SnapPoint) => {
-      setSnapPoint(point);
-      setSheetHeight(snapHeightFor(point));
-      reportSheetTop(snapHeightFor(point));
-    },
-    [reportSheetTop],
-  );
-
+  // ── Tap on header → toggle ────────────────────────────────────────────────
   const handleTitleTap = useCallback(() => {
-    if (snapPoint === 'collapsed') {
-      snapTo('half');
-      return;
-    }
+    snapTo(snapPointRef.current === 'collapsed' ? 'full' : 'collapsed');
+  }, [snapTo]);
 
-    if (snapPoint === 'half') {
-      snapTo('full');
-    }
-  }, [snapPoint, snapTo]);
-
+  // ── Drag mechanics ────────────────────────────────────────────────────────
   const finishSheetGesture = useCallback(
     (velocity: number, options?: { allowTitleTap?: boolean }) => {
-      if (!isDraggingRef.current) {
-        return;
-      }
+      if (!isDraggingRef.current) return;
 
       const wasTap = !dragMovedRef.current;
       const pointerTarget = dragPointerTargetRef.current;
@@ -303,24 +327,21 @@ export function CampusMobileBottomSheet({
       setSheetDragging(false);
       scrollGestureRef.current = null;
 
-      if (wasTap && options?.allowTitleTap) {
-        if (pointerTarget instanceof Element && pointerTarget.closest('.mobile-sheet__title-btn')) {
-          handleTitleTap();
+      if (wasTap) {
+        if (options?.allowTitleTap) {
+          if (pointerTarget instanceof Element && pointerTarget.closest('.mobile-sheet__drag-zone')) {
+            handleTitleTap();
+          }
         }
         return;
       }
 
-      if (wasTap) {
-        return;
-      }
-
       const vh = getViewportHeight();
-      const heights = getSnapHeights();
       const result = resolveSnapWithVelocity(
         sheetHeightRef.current,
         velocity,
         snapPointRef.current,
-        heights,
+        getSnapHeights(),
         DISMISS_THRESHOLD,
         vh,
       );
@@ -330,9 +351,9 @@ export function CampusMobileBottomSheet({
         return;
       }
 
-      snapTo(result);
+      snapTo(result, velocity);
     },
-    [handleTitleTap, onDismiss, setSheetDragging, snapTo],
+    [getSnapHeights, handleTitleTap, onDismiss, setSheetDragging, snapTo],
   );
 
   const beginSheetDrag = useCallback(
@@ -345,30 +366,31 @@ export function CampusMobileBottomSheet({
       setIsDragging(true);
       setIsDragZonePressed(options?.pressed ?? false);
       setSheetDragging(true);
-      dragStartYRef.current = clientY;
-      dragStartHeightRef.current = sheetHeightRef.current;
+      applyTransition('none');
+      dragStartY.current = clientY;
+      dragStartHeight.current = sheetHeightRef.current;
     },
-    [setSheetDragging],
+    [applyTransition, setSheetDragging],
   );
+
+  const dragStartY = useRef(0);
+  const dragStartHeight = useRef(0);
 
   const applySheetDrag = useCallback(
     (clientY: number) => {
-      const deltaY = dragStartYRef.current - clientY;
-
+      const deltaY = dragStartY.current - clientY;
       if (Math.abs(deltaY) > DRAG_MOVE_THRESHOLD) {
         dragMovedRef.current = true;
       }
-
       const now = Date.now();
       const elapsed = now - dragLastMoveRef.current.time;
       if (elapsed > 0) {
         dragVelocityRef.current = (dragLastMoveRef.current.y - clientY) / elapsed;
       }
       dragLastMoveRef.current = { y: clientY, time: now };
-
       const nextHeight = Math.min(
         getMaxSheetHeight(),
-        Math.max(0, dragStartHeightRef.current + deltaY),
+        Math.max(0, dragStartHeight.current + deltaY),
       );
       setSheetHeight(nextHeight);
       reportSheetTop(nextHeight);
@@ -376,59 +398,43 @@ export function CampusMobileBottomSheet({
     [reportSheetTop],
   );
 
+  // Document-level drag listeners (always mounted, gated by isDraggingRef)
   useEffect(() => {
     const onTouchMove = (event: TouchEvent) => {
-      if (!isDraggingRef.current || event.touches.length !== 1) {
-        return;
-      }
-
+      if (!isDraggingRef.current || event.touches.length !== 1) return;
       event.preventDefault();
       applySheetDrag(event.touches[0].clientY);
     };
-
     const onMouseMove = (event: MouseEvent) => {
-      if (!isDraggingRef.current) {
-        return;
-      }
-
+      if (!isDraggingRef.current) return;
       event.preventDefault();
       applySheetDrag(event.clientY);
     };
-
-    const finishDrag = () => {
-      if (!isDraggingRef.current) {
-        return;
-      }
-
+    const finish = () => {
+      if (!isDraggingRef.current) return;
       finishSheetGesture(dragVelocityRef.current, { allowTitleTap: true });
     };
-
     document.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', finishDrag);
-    document.addEventListener('touchcancel', finishDrag);
+    document.addEventListener('touchend', finish);
+    document.addEventListener('touchcancel', finish);
     document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', finishDrag);
-
+    document.addEventListener('mouseup', finish);
     return () => {
       document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', finishDrag);
-      document.removeEventListener('touchcancel', finishDrag);
+      document.removeEventListener('touchend', finish);
+      document.removeEventListener('touchcancel', finish);
       document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', finishDrag);
+      document.removeEventListener('mouseup', finish);
     };
   }, [applySheetDrag, finishSheetGesture]);
 
+  // Scroll-area gesture arbitration (scroll vs. sheet-drag)
   useEffect(() => {
     const scrollEl = scrollRef.current;
-    if (!scrollEl) {
-      return;
-    }
+    if (!scrollEl) return;
 
     const onTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1 || isDraggingRef.current) {
-        return;
-      }
-
+      if (event.touches.length !== 1 || isDraggingRef.current) return;
       scrollGestureRef.current = createScrollGestureState(
         event.touches[0].clientY,
         sheetHeightRef.current,
@@ -437,15 +443,9 @@ export function CampusMobileBottomSheet({
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (event.touches.length !== 1) {
-        return;
-      }
-
+      if (event.touches.length !== 1) return;
       const gesture = scrollGestureRef.current;
-      if (!gesture) {
-        return;
-      }
-
+      if (!gesture) return;
       const clientY = event.touches[0].clientY;
       const scrollTop = scrollEl.scrollTop;
       const maxHeight = getMaxSheetHeight();
@@ -454,36 +454,24 @@ export function CampusMobileBottomSheet({
       if (gesture.mode === 'content') {
         const stepDelta = clientY - gesture.lastY;
         updateGestureVelocity(gesture, clientY);
-
         if (atFull && isScrollAtTop(scrollTop) && stepDelta > 0) {
           gesture.mode = 'sheet';
-          gesture.startY = clientY;
-          gesture.startHeight = sheetHeightRef.current;
           beginSheetDrag(clientY, event.target);
           event.preventDefault();
           applySheetDrag(clientY);
         }
-
         return;
       }
 
       if (gesture.mode === 'undecided') {
         const nextMode = decideScrollGestureMode(
-          gesture,
-          clientY,
-          scrollTop,
-          atFull,
-          scrollEl,
-          DRAG_MOVE_THRESHOLD,
+          gesture, clientY, scrollTop, atFull, scrollEl, DRAG_MOVE_THRESHOLD,
         );
-
         if (nextMode === 'undecided') {
           updateGestureVelocity(gesture, clientY);
           return;
         }
-
         gesture.mode = nextMode;
-
         if (nextMode === 'content') {
           updateGestureVelocity(gesture, clientY);
           return;
@@ -494,7 +482,6 @@ export function CampusMobileBottomSheet({
         if (!isDraggingRef.current) {
           beginSheetDrag(clientY, event.target);
         }
-
         event.preventDefault();
         updateGestureVelocity(gesture, clientY);
         applySheetDrag(clientY);
@@ -503,15 +490,11 @@ export function CampusMobileBottomSheet({
 
     const onTouchEnd = () => {
       const gesture = scrollGestureRef.current;
-      if (!gesture) {
-        return;
-      }
-
+      if (!gesture) return;
       if (gesture.mode === 'sheet' && isDraggingRef.current) {
         finishSheetGesture(gesture.velocity);
         return;
       }
-
       scrollGestureRef.current = null;
     };
 
@@ -519,7 +502,6 @@ export function CampusMobileBottomSheet({
     scrollEl.addEventListener('touchmove', onTouchMove, { passive: false });
     scrollEl.addEventListener('touchend', onTouchEnd);
     scrollEl.addEventListener('touchcancel', onTouchEnd);
-
     return () => {
       scrollEl.removeEventListener('touchstart', onTouchStart);
       scrollEl.removeEventListener('touchmove', onTouchMove);
@@ -528,54 +510,44 @@ export function CampusMobileBottomSheet({
     };
   }, [applySheetDrag, beginSheetDrag, finishSheetGesture]);
 
+  // ── Event handlers ────────────────────────────────────────────────────────
   const handleDragZoneTouchStart = (event: React.TouchEvent) => {
-    if (event.touches.length !== 1) {
-      return;
-    }
-
+    if (event.touches.length !== 1) return;
     scrollGestureRef.current = null;
     beginSheetDrag(event.touches[0].clientY, event.target, { pressed: true });
   };
 
   const handleDragZoneMouseDown = (event: React.MouseEvent) => {
-    if (event.button !== 0) {
-      return;
-    }
-
+    if (event.button !== 0) return;
     event.preventDefault();
     scrollGestureRef.current = null;
     beginSheetDrag(event.clientY, event.target, { pressed: true });
   };
 
-  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleTitleTap();
-    }
+  const handleMarkPrayed = () => {
+    if (campus.prayedFor) return;
+    setIsPopping(true);
+    onLogPrayerWalk(campus.id);
+  };
+
+  const handleButtonAnimationEnd = (event: React.AnimationEvent<HTMLButtonElement>) => {
+    if (event.animationName === 'campus-mark-pop') setIsPopping(false);
   };
 
   const dragZoneClassName = [
     'mobile-sheet__drag-zone',
     isDragZonePressed ? 'mobile-sheet__drag-zone--pressed' : '',
     isDragging ? 'mobile-sheet__drag-zone--grabbing' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  ].filter(Boolean).join(' ');
 
-  const handleMarkPrayed = () => {
-    if (campus.prayedFor) {
-      return;
-    }
-
-    setIsPopping(true);
-    onLogPrayerWalk(campus.id);
-  };
-
-  const handleButtonAnimationEnd = (event: React.AnimationEvent<HTMLButtonElement>) => {
-    if (event.animationName === 'campus-mark-pop') {
-      setIsPopping(false);
-    }
-  };
+  const reportSheetTopCallback = useCallback(
+    (height: number) => {
+      onSheetTopChange(getViewportHeight() - height);
+      document.body.style.setProperty('--mobile-sheet-height', `${height}px`);
+    },
+    [onSheetTopChange],
+  );
+  void reportSheetTopCallback; // reportSheetTop is used directly above
 
   const sheet = (
     <>
@@ -587,127 +559,121 @@ export function CampusMobileBottomSheet({
       <aside
         ref={sheetRef}
         className={isDragging ? 'mobile-sheet mobile-sheet--dragging' : 'mobile-sheet'}
-        style={{
-          height: sheetHeight,
-          transition: isDragging ? 'none' : SPRING_TRANSITION,
-        }}
+        style={{ height: sheetHeight }}
         aria-label={getCampusPrimaryName(campus)}
       >
-      <div
-        className={dragZoneClassName}
-        onTouchStart={handleDragZoneTouchStart}
-        onMouseDown={handleDragZoneMouseDown}
-      >
-        <div className="mobile-sheet__handle-wrap" aria-hidden="true">
-          <div className="mobile-sheet__handle" />
-        </div>
+        {/* ── Always-visible collapsed content (measured for snap height) ── */}
+        <div ref={collapsedContentRef}>
+          <div
+            className={dragZoneClassName}
+            onTouchStart={handleDragZoneTouchStart}
+            onMouseDown={handleDragZoneMouseDown}
+          >
+            <div className="mobile-sheet__handle-wrap" aria-hidden="true">
+              <div className="mobile-sheet__handle" />
+            </div>
+            <p className="mobile-sheet__location">{locationLine}</p>
+            <button
+              type="button"
+              className="mobile-sheet__title-btn"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleTitleTap();
+                }
+              }}
+            >
+              <span className="mobile-sheet__name">{getCampusPrimaryName(campus)}</span>
+              {!isExpanded && <ChevronUpIcon />}
+            </button>
+            {secondaryName && <p className="mobile-sheet__name-th">{secondaryName}</p>}
+          </div>
 
-        <p className="mobile-sheet__location">{locationLine}</p>
-
-        <button
-          type="button"
-          className="mobile-sheet__title-btn"
-          onKeyDown={handleTitleKeyDown}
-        >
-          <span className="mobile-sheet__name">{getCampusPrimaryName(campus)}</span>
-          {snapPoint !== 'full' && <ChevronUpIcon />}
-        </button>
-
-        {secondaryName && <p className="mobile-sheet__name-th">{secondaryName}</p>}
-      </div>
-
-      <div
-        ref={scrollRef}
-        className={
-          isDragging
-            ? 'mobile-sheet__scroll mobile-sheet__scroll--locked'
-            : 'mobile-sheet__scroll'
-        }
-      >
-        <button
-          type="button"
-          className={
-            [
+          <button
+            type="button"
+            className={[
               'campus-detail__mark-btn mobile-sheet__mark-btn',
               campus.prayedFor ? 'campus-detail__mark-btn--prayed' : '',
               isPopping ? 'campus-detail__mark-btn--pop' : '',
-            ]
-              .filter(Boolean)
-              .join(' ')
+            ].filter(Boolean).join(' ')}
+            onClick={handleMarkPrayed}
+            onAnimationEnd={handleButtonAnimationEnd}
+            disabled={campus.prayedFor}
+            aria-disabled={campus.prayedFor}
+          >
+            {campus.prayedFor ? <CheckIcon /> : <PrayerHandsIcon />}
+            <span>{campus.prayedFor ? t.panel.prayedForButton : t.panel.markAsPrayed}</span>
+          </button>
+        </div>
+
+        {/* ── Expanded content (scroll area) ── */}
+        <div
+          ref={scrollRef}
+          className={
+            isDragging
+              ? 'mobile-sheet__scroll mobile-sheet__scroll--locked'
+              : 'mobile-sheet__scroll'
           }
-          onClick={handleMarkPrayed}
-          onAnimationEnd={handleButtonAnimationEnd}
-          disabled={campus.prayedFor}
-          aria-disabled={campus.prayedFor}
         >
-          {campus.prayedFor ? <CheckIcon /> : <PrayerHandsIcon />}
-          <span>{campus.prayedFor ? t.panel.prayedForButton : t.panel.markAsPrayed}</span>
-        </button>
+          <blockquote
+            className={
+              campus.prayedFor
+                ? 'campus-detail__prayer-prompt campus-detail__prayer-prompt--prayed mobile-sheet__prayer'
+                : 'campus-detail__prayer-prompt mobile-sheet__prayer'
+            }
+          >
+            {prayerPrompt}
+          </blockquote>
 
-        {showHalfContent && (
-          <div className="mobile-sheet__section mobile-sheet__section--half">
-            <blockquote
-              className={
-                campus.prayedFor
-                  ? 'campus-detail__prayer-prompt campus-detail__prayer-prompt--prayed mobile-sheet__prayer'
-                  : 'campus-detail__prayer-prompt mobile-sheet__prayer'
-              }
-            >
-              {prayerPrompt}
-            </blockquote>
-
-            <div className="mobile-sheet__mini-map-wrap">
-              <CampusMiniMap campus={campus} isPanelOpen variant="detail" />
-            </div>
+          <div className="mobile-sheet__mini-map-wrap">
+            <CampusMiniMap campus={campus} isPanelOpen={isExpanded} variant="detail" />
           </div>
+
+          <hr className="campus-detail__divider campus-detail__divider--info" />
+
+          <section
+            className="campus-detail__info mobile-sheet__info"
+            aria-labelledby="mobile-campus-info-heading"
+          >
+            <h3 id="mobile-campus-info-heading" className="campus-detail__info-label">
+              {t.explore.campusInfo}
+            </h3>
+            <dl className="campus-detail__info-rows">
+              <div className="campus-detail__info-row">
+                <dt>{t.panel.type}</dt>
+                <dd>{getInstitutionTypeLabel(campus.type)}</dd>
+              </div>
+              <div className="campus-detail__info-row">
+                <dt>{t.panel.students}</dt>
+                <dd>{formatNumber(campus.studentPopulation)}</dd>
+              </div>
+              <div className="campus-detail__info-row">
+                <dt>{t.panel.founded}</dt>
+                <dd>{campus.foundingYear}</dd>
+              </div>
+              <div className="campus-detail__info-row campus-detail__info-row--last">
+                <dt>{t.explore.website}</dt>
+                <dd>
+                  <a
+                    className="campus-detail__website-link"
+                    href={campus.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span>{websiteLabel(campus.website)}</span>
+                    <ExternalLinkIcon />
+                  </a>
+                </dd>
+              </div>
+            </dl>
+          </section>
+        </div>
+
+        {showScrollHint && (
+          <p className="mobile-sheet__scroll-hint" aria-hidden="true">
+            {t.explore.scrollForMore}
+          </p>
         )}
-
-        {showFullContent && (
-          <div className="mobile-sheet__section mobile-sheet__section--full">
-            <hr className="campus-detail__divider campus-detail__divider--info" />
-
-            <section className="campus-detail__info mobile-sheet__info" aria-labelledby="mobile-campus-info-heading">
-              <h3 id="mobile-campus-info-heading" className="campus-detail__info-label">
-                {t.explore.campusInfo}
-              </h3>
-              <dl className="campus-detail__info-rows">
-                <div className="campus-detail__info-row">
-                  <dt>{t.panel.type}</dt>
-                  <dd>{getInstitutionTypeLabel(campus.type)}</dd>
-                </div>
-                <div className="campus-detail__info-row">
-                  <dt>{t.panel.students}</dt>
-                  <dd>{formatNumber(campus.studentPopulation)}</dd>
-                </div>
-                <div className="campus-detail__info-row">
-                  <dt>{t.panel.founded}</dt>
-                  <dd>{campus.foundingYear}</dd>
-                </div>
-                <div className="campus-detail__info-row campus-detail__info-row--last">
-                  <dt>{t.explore.website}</dt>
-                  <dd>
-                    <a
-                      className="campus-detail__website-link"
-                      href={campus.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <span>{websiteLabel(campus.website)}</span>
-                      <ExternalLinkIcon />
-                    </a>
-                  </dd>
-                </div>
-              </dl>
-            </section>
-          </div>
-        )}
-      </div>
-
-      {showScrollHint && (
-        <p className="mobile-sheet__scroll-hint" aria-hidden="true">
-          {t.explore.scrollForMore}
-        </p>
-      )}
       </aside>
     </>
   );
