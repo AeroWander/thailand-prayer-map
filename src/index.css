@@ -2563,11 +2563,11 @@ html.lang-th .hero-headline {
   }
 
   .mobile-sheet__prayer {
-    margin: 0.25rem 1.25rem 0;
+    margin: 0.75rem 1.25rem 0;
   }
 
   .mobile-sheet__mini-map-wrap {
-    margin: 0 1.25rem 0.5rem;
+    margin: 1rem 1.25rem 0.75rem;
   }
 
   .mobile-sheet__mini-map-wrap .campus-panel__mini-map--detail {
