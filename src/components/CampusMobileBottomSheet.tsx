@@ -4,6 +4,7 @@ import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
 import { buildCampusPrayerPrompt } from '../utils/campusPrayerPrompt';
+import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
 import { CampusMiniMap } from './CampusMiniMap';
 
 type CampusMobileBottomSheetProps = {
@@ -137,13 +138,14 @@ export function CampusMobileBottomSheet({
   const [isPopping, setIsPopping] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
-  const { setSheetDragging } = useMapSheetTouchLock();
+  const { setSheetDragging, setSheetOpen, setSheetOcclusionTop } = useMapSheetTouchLock();
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(0);
   const sheetHeightRef = useRef(sheetHeight);
   const isDraggingRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
+  const shieldRef = useRef<HTMLDivElement>(null);
 
   sheetHeightRef.current = sheetHeight;
 
@@ -164,9 +166,12 @@ export function CampusMobileBottomSheet({
 
   const reportSheetTop = useCallback(
     (height: number) => {
-      onSheetTopChange(getViewportHeight() - height);
+      const sheetTop = getViewportHeight() - height;
+      onSheetTopChange(sheetTop);
+      setSheetOcclusionTop(sheetTop);
+      document.body.style.setProperty('--mobile-sheet-height', `${height}px`);
     },
-    [onSheetTopChange],
+    [onSheetTopChange, setSheetOcclusionTop],
   );
 
   useEffect(() => {
@@ -179,13 +184,40 @@ export function CampusMobileBottomSheet({
   }, [campus.id]);
 
   useEffect(() => {
+    setSheetOpen(true);
+    document.body.classList.add('mobile-sheet-open');
+
     return () => {
+      setSheetOpen(false);
+      document.body.classList.remove('mobile-sheet-open');
+      document.body.style.removeProperty('--mobile-sheet-height');
+
       if (isDraggingRef.current) {
         isDraggingRef.current = false;
         setSheetDragging(false);
       }
     };
-  }, [setSheetDragging]);
+  }, [setSheetOpen, setSheetDragging]);
+
+  useEffect(() => {
+    const shield = shieldRef.current;
+    if (!shield) {
+      return;
+    }
+
+    const blockTouch = (event: TouchEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    shield.addEventListener('touchstart', blockTouch, { passive: false });
+    shield.addEventListener('touchmove', blockTouch, { passive: false });
+
+    return () => {
+      shield.removeEventListener('touchstart', blockTouch);
+      shield.removeEventListener('touchmove', blockTouch);
+    };
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -321,16 +353,25 @@ export function CampusMobileBottomSheet({
     }
   };
 
+  const sheetTop = getViewportHeight() - sheetHeight;
+
   const sheet = (
-    <aside
-      ref={sheetRef}
-      className={isDragging ? 'mobile-sheet mobile-sheet--dragging' : 'mobile-sheet'}
-      style={{
-        height: sheetHeight,
-        transition: isDragging ? 'none' : SPRING_TRANSITION,
-      }}
-      aria-label={getCampusPrimaryName(campus)}
-    >
+    <>
+      <div
+        ref={shieldRef}
+        className="mobile-sheet-portal__shield"
+        style={{ top: sheetTop }}
+        aria-hidden="true"
+      />
+      <aside
+        ref={sheetRef}
+        className={isDragging ? 'mobile-sheet mobile-sheet--dragging' : 'mobile-sheet'}
+        style={{
+          height: sheetHeight,
+          transition: isDragging ? 'none' : SPRING_TRANSITION,
+        }}
+        aria-label={getCampusPrimaryName(campus)}
+      >
       <div
         className="mobile-sheet__drag-zone"
         onTouchStart={(event) => {
@@ -441,8 +482,9 @@ export function CampusMobileBottomSheet({
           {t.explore.scrollForMore}
         </p>
       )}
-    </aside>
+      </aside>
+    </>
   );
 
-  return createPortal(sheet, document.body);
+  return createPortal(sheet, getMobileSheetPortalElement());
 }

@@ -10,23 +10,47 @@ import {
 type MapSheetTouchLockContextValue = {
   isSheetDragging: boolean;
   setSheetDragging: (dragging: boolean) => void;
+  isSheetOpen: boolean;
+  setSheetOpen: (open: boolean) => void;
+  sheetOcclusionTop: number;
+  setSheetOcclusionTop: (top: number) => void;
 };
 
 const MapSheetTouchLockContext = createContext<MapSheetTouchLockContextValue | null>(null);
 
 export function MapSheetTouchLockProvider({ children }: { children: ReactNode }) {
   const [isSheetDragging, setIsSheetDragging] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [sheetOcclusionTop, setSheetOcclusionTop] = useState(Number.POSITIVE_INFINITY);
 
   const setSheetDragging = useCallback((dragging: boolean) => {
     setIsSheetDragging(dragging);
+  }, []);
+
+  const setSheetOpen = useCallback((open: boolean) => {
+    setIsSheetOpen(open);
+    if (!open) {
+      setSheetOcclusionTop(Number.POSITIVE_INFINITY);
+    }
   }, []);
 
   const value = useMemo(
     () => ({
       isSheetDragging,
       setSheetDragging,
+      isSheetOpen,
+      setSheetOpen,
+      sheetOcclusionTop,
+      setSheetOcclusionTop,
     }),
-    [isSheetDragging, setSheetDragging],
+    [
+      isSheetDragging,
+      setSheetDragging,
+      isSheetOpen,
+      setSheetOpen,
+      sheetOcclusionTop,
+      setSheetOcclusionTop,
+    ],
   );
 
   return (

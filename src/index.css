@@ -52,6 +52,48 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Mobile bottom sheet portal — above Leaflet controls (z-index 1000) and app UI */
+#mobile-sheet-portal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  z-index: 10000;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.mobile-sheet-portal__shield {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10000;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.mobile-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+  background: #ffffff;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  pointer-events: auto;
+}
+
+body.mobile-sheet-open .map-view .leaflet-control-container {
+  visibility: hidden;
+  pointer-events: none !important;
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -2386,24 +2428,6 @@ html.lang-th .hero-headline {
 
   .explore-panel--mobile-list .explore-panel__filters {
     flex-direction: column;
-  }
-
-  .mobile-sheet {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 1500;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 20px 20px 0 0;
-    background: #ffffff;
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
-    pointer-events: auto;
-    isolation: isolate;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
   }
 
   .mobile-sheet--dragging {
