@@ -130,7 +130,6 @@ export function CampusMobileBottomSheet({
   const [isDragging, setIsDragging] = useState(false);
   const [isDragZonePressed, setIsDragZonePressed] = useState(false);
   const [isPopping, setIsPopping] = useState(false);
-  const [showScrollHint, setShowScrollHint] = useState(false);
 
   const { setSheetDragging } = useMapSheetTouchLock();
 
@@ -279,27 +278,6 @@ export function CampusMobileBottomSheet({
     return () => window.removeEventListener('resize', handleResize);
   }, [snapTo]);
 
-  // Scroll hint logic
-  useEffect(() => {
-    const scrollEl = scrollRef.current;
-    if (!scrollEl || !isExpanded) {
-      setShowScrollHint(false);
-      return;
-    }
-    const updateHint = () => {
-      const canScroll = scrollEl.scrollHeight > scrollEl.clientHeight + 4;
-      const nearBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - 12;
-      setShowScrollHint(canScroll && !nearBottom);
-    };
-    updateHint();
-    scrollEl.addEventListener('scroll', updateHint, { passive: true });
-    const observer = new ResizeObserver(updateHint);
-    observer.observe(scrollEl);
-    return () => {
-      scrollEl.removeEventListener('scroll', updateHint);
-      observer.disconnect();
-    };
-  }, [isExpanded, campus.id, sheetHeight]);
 
   // ── Tap on header → toggle ────────────────────────────────────────────────
   const handleTitleTap = useCallback(() => {
@@ -688,11 +666,6 @@ export function CampusMobileBottomSheet({
           </section>
         </div>
 
-        {showScrollHint && (
-          <p className="mobile-sheet__scroll-hint" aria-hidden="true">
-            {t.explore.scrollForMore}
-          </p>
-        )}
       </aside>
     </>
   );
