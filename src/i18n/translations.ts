@@ -75,6 +75,7 @@ export type TranslationSchema = {
     backAria: string;
     website: string;
     campusInfo: string;
+    scrollForMore: string;
     prayerPromptPrayed: string;
     prayerHeading: string;
     joinOthersPraying: string;
@@ -205,6 +206,7 @@ export const translations: Record<Language, TranslationSchema> = {
       backAria: 'Back to campus list',
       website: 'Website',
       campusInfo: 'Campus info',
+      scrollForMore: 'Scroll for more',
       prayerPromptPrayed:
         'This campus has been covered in prayer. Thank you for praying here.',
       prayerHeading: 'Prayer',
@@ -405,6 +407,7 @@ export const translations: Record<Language, TranslationSchema> = {
       backAria: 'กลับไปรายการมหาวิทยาลัย',
       website: 'เว็บไซต์',
       campusInfo: 'ข้อมูลมหาวิทยาลัย',
+      scrollForMore: 'เลื่อนเพื่อดูเพิ่มเติม',
       prayerPromptPrayed:
         'มหาวิทยาลัยนี้ได้รับการอธิษฐานแล้ว ขอบคุณที่อธิษฐานที่นี่',
       prayerHeading: 'อธิษฐาน',

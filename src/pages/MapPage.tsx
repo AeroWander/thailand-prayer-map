@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   CampusExplorePanel,
   type ExplorePanelView,
 } from '../components/CampusExplorePanel';
+import { CampusMobileBottomSheet } from '../components/CampusMobileBottomSheet';
 import { MapView } from '../components/MapView';
 import { UniversitySearch } from '../components/UniversitySearch';
+import { MOBILE_MEDIA_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCampuses } from '../context/CampusContext';
 import { MapFlyToProvider, useMapFlyTo } from '../context/MapFlyToContext';
 import {
@@ -69,6 +71,9 @@ function MapPageContent() {
   const { clearUserInteracting, markPrayerUpdate } = useMapNavigationGuard();
   const flyToCampus = useMapFlyTo();
   const { campuses, logPrayerWalk } = useCampuses();
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
+  const searchOverlayRef = useRef<HTMLDivElement>(null);
+  const [searchOpacity, setSearchOpacity] = useState(1);
   const initialTravel = isMapNavigationState(location.state) ? location.state : null;
 
   const [selectedProvince, setSelectedProvince] = useState(() =>
@@ -186,7 +191,38 @@ function MapPageContent() {
     setSelectedCampusId(null);
     setPanelView('list');
     setIsPanelArrival(false);
+    setSearchOpacity(1);
   }, [clearUserInteracting]);
+
+  const handleMobileSheetDismiss = useCallback(() => {
+    setSelectedCampusId(null);
+    setPanelView('list');
+    setIsExploreOpen(false);
+    setSearchOpacity(1);
+  }, []);
+
+  const handleSheetTopChange = useCallback((sheetTop: number) => {
+    const searchBottom = searchOverlayRef.current?.getBoundingClientRect().bottom;
+
+    if (searchBottom === undefined) {
+      setSearchOpacity(1);
+      return;
+    }
+
+    const fadeStart = searchBottom + 120;
+
+    if (sheetTop >= fadeStart) {
+      setSearchOpacity(1);
+      return;
+    }
+
+    if (sheetTop <= searchBottom) {
+      setSearchOpacity(0);
+      return;
+    }
+
+    setSearchOpacity((sheetTop - searchBottom) / 120);
+  }, []);
 
   const handleTravelComplete = useCallback(() => {
     setTravelTarget(null);
@@ -205,7 +241,11 @@ function MapPageContent() {
     <div className="app__content app__content--explore page-enter">
       <div
         className={
-          isExploreOpen ? 'map-layout' : 'map-layout map-layout--panel-closed'
+          isMobile
+            ? 'map-layout map-layout--mobile'
+            : isExploreOpen
+              ? 'map-layout'
+              : 'map-layout map-layout--panel-closed'
         }
       >
         <div className="map-layout__map">
@@ -219,7 +259,15 @@ function MapPageContent() {
             onTravelComplete={handleTravelComplete}
             suppressMapAnimations={isPanelArrival}
           />
-          <div className="map-search-overlay">
+          <div
+            ref={searchOverlayRef}
+            className="map-search-overlay"
+            style={{
+              opacity: isMobile ? searchOpacity : 1,
+              transition: isMobile ? 'opacity 0.2s ease' : undefined,
+              pointerEvents: isMobile && searchOpacity === 0 ? 'none' : undefined,
+            }}
+          >
             <UniversitySearch
               variant="floating"
               campuses={campuses}
@@ -229,10 +277,20 @@ function MapPageContent() {
               clearOnSelect
             />
           </div>
+
+          {isMobile && panelView === 'detail' && selectedCampus && (
+            <CampusMobileBottomSheet
+              campus={selectedCampus}
+              onDismiss={handleMobileSheetDismiss}
+              onLogPrayerWalk={handleLogPrayerWalk}
+              onSheetTopChange={handleSheetTopChange}
+            />
+          )}
         </div>
 
-        {isExploreOpen && (
+        {isExploreOpen && (!isMobile || panelView === 'list') && (
           <CampusExplorePanel
+            isMobile={isMobile}
             allCampuses={campuses}
             visibleCampuses={visibleCampuses}
             view={panelView}

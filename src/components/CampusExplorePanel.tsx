@@ -23,6 +23,7 @@ type CampusExplorePanelProps = {
   onBackToList: () => void;
   onClose: () => void;
   onLogPrayerWalk: (campusId: string) => void;
+  isMobile?: boolean;
 };
 
 export function CampusExplorePanel({
@@ -40,16 +41,21 @@ export function CampusExplorePanel({
   onBackToList,
   onClose,
   onLogPrayerWalk,
+  isMobile = false,
 }: CampusExplorePanelProps) {
   const { t } = useLanguage();
   const isDetail = view === 'detail' && selectedCampus;
+
+  if (isMobile && isDetail) {
+    return null;
+  }
 
   return (
     <aside
       className={
         animateEntry
-          ? `explore-panel explore-panel--arrival${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}`
-          : `explore-panel${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}`
+          ? `explore-panel explore-panel--arrival${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}${isMobile ? ' explore-panel--mobile-list' : ''}`
+          : `explore-panel${isDetail ? ' explore-panel--detail' : ' explore-panel--list'}${isMobile ? ' explore-panel--mobile-list' : ''}`
       }
       aria-label={t.explore.panelAria}
     >
