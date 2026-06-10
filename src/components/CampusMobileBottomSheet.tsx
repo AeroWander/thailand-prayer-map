@@ -16,6 +16,7 @@ import {
 } from '../utils/bottomSheetGestures';
 import { buildCampusPrayerPrompt } from '../utils/campusPrayerPrompt';
 import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
+import { getLayoutViewportHeight } from '../utils/viewport';
 import { CampusMiniMap } from './CampusMiniMap';
 
 type CampusMobileBottomSheetProps = {
@@ -40,7 +41,7 @@ function websiteLabel(url: string): string {
 }
 
 function getViewportHeight(): number {
-  return window.visualViewport?.height ?? window.innerHeight;
+  return getLayoutViewportHeight();
 }
 
 function getSiteHeaderHeight(): number {
@@ -232,10 +233,8 @@ export function CampusMobileBottomSheet({
     };
 
     window.addEventListener('resize', handleResize);
-    window.visualViewport?.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.visualViewport?.removeEventListener('resize', handleResize);
     };
   }, [snapPoint]);
 

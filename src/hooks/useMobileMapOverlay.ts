@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
 import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
+import { getLayoutViewportHeight } from '../utils/viewport';
 
 type UseMobileMapOverlayOptions = {
   enabled: boolean;
@@ -10,7 +11,7 @@ type UseMobileMapOverlayOptions = {
 };
 
 function getViewportHeight(): number {
-  return window.visualViewport?.height ?? window.innerHeight;
+  return getLayoutViewportHeight();
 }
 
 export function useMobileMapOverlay({
@@ -63,12 +64,10 @@ export function useMobileMapOverlay({
 
     const observer = new ResizeObserver(measureOverlay);
     observer.observe(element);
-    window.visualViewport?.addEventListener('resize', measureOverlay);
     window.addEventListener('resize', measureOverlay);
 
     return () => {
       observer.disconnect();
-      window.visualViewport?.removeEventListener('resize', measureOverlay);
       window.removeEventListener('resize', measureOverlay);
     };
   }, [enabled, measureOverlay, occlusionTop, overlayRef]);
