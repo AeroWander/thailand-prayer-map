@@ -2552,6 +2552,10 @@ html.lang-th .hero-headline {
     color: #c4c9d4;
   }
 
+  .mobile-sheet__peek-hint--hidden {
+    visibility: hidden;
+  }
+
   .mobile-sheet__peek-dots {
     display: block;
     width: 20px;

@@ -598,15 +598,20 @@ export function CampusMobileBottomSheet({
             <span>{campus.prayedFor ? t.panel.prayedForButton : t.panel.markAsPrayed}</span>
           </button>
 
-          {!isExpanded && (
-            <div className="mobile-sheet__peek-hint" aria-hidden="true">
-              <span className="mobile-sheet__peek-dots" />
-              <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
-                <path d="M1 7L7 1.5L13 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="mobile-sheet__peek-dots" />
-            </div>
-          )}
+          <div
+            className={
+              isExpanded
+                ? 'mobile-sheet__peek-hint mobile-sheet__peek-hint--hidden'
+                : 'mobile-sheet__peek-hint'
+            }
+            aria-hidden="true"
+          >
+            <span className="mobile-sheet__peek-dots" />
+            <svg width="14" height="8" viewBox="0 0 14 8" fill="none">
+              <path d="M1 7L7 1.5L13 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="mobile-sheet__peek-dots" />
+          </div>
         </div>
 
         {/* ── Expanded content (scroll area) ── */}
