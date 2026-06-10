@@ -2441,16 +2441,37 @@ html.lang-th .hero-headline {
 
   .mobile-sheet__drag-zone {
     flex-shrink: 0;
-    min-height: 28px;
+    width: 100%;
+    min-height: 44px;
     touch-action: none;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease;
+  }
+
+  .mobile-sheet__drag-zone--pressed {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+
+  .mobile-sheet__drag-zone--grabbing,
+  .mobile-sheet--dragging .mobile-sheet__drag-zone {
+    cursor: grabbing;
+  }
+
+  .mobile-sheet__handle-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 14px 0;
   }
 
   .mobile-sheet__handle {
-    width: 36px;
-    height: 4px;
-    margin: 10px auto 0;
+    width: 48px;
+    height: 5px;
+    flex-shrink: 0;
     border-radius: 999px;
-    background: #d1d5db;
+    background: #b0b5bf;
   }
 
   .mobile-sheet__scroll {
@@ -2471,7 +2492,7 @@ html.lang-th .hero-headline {
   }
 
   .mobile-sheet__location {
-    margin: 0.75rem 1.25rem 0.25rem;
+    margin: 0 1.25rem 0.25rem;
     font-size: 0.75rem;
     color: #9aa3b0;
     line-height: 1.4;
@@ -2488,7 +2509,7 @@ html.lang-th .hero-headline {
     border: none;
     background: transparent;
     text-align: left;
-    cursor: pointer;
+    cursor: inherit;
     font-family: inherit;
   }
 
@@ -2500,7 +2521,7 @@ html.lang-th .hero-headline {
   }
 
   .mobile-sheet__name-th {
-    margin: 0.25rem 1.25rem 0.75rem;
+    margin: 0.25rem 1.25rem 0.5rem;
     font-size: 0.875rem;
     color: #9aa3b0;
     line-height: 1.45;
@@ -2514,7 +2535,12 @@ html.lang-th .hero-headline {
 
   .mobile-sheet__mark-btn {
     width: calc(100% - 2.5rem);
-    margin-top: 0.25rem;
+    margin: 0.5rem 0 0;
+  }
+
+  .mobile-sheet__scroll > .mobile-sheet__mark-btn {
+    margin-left: 1.25rem;
+    margin-right: 1.25rem;
   }
 
   .mobile-sheet__prayer {

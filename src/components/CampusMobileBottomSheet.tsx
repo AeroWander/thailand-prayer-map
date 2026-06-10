@@ -19,8 +19,8 @@ type SnapPoint = 'collapsed' | 'half' | 'full';
 
 const SNAP_COLLAPSED = 0.3;
 const SNAP_HALF = 0.6;
-const SNAP_FULL = 0.9;
 const DISMISS_THRESHOLD = 0.18;
+const DRAG_MOVE_THRESHOLD = 8;
 const SPRING_TRANSITION = 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
 
 function websiteLabel(url: string): string {
@@ -35,28 +35,55 @@ function getViewportHeight(): number {
   return window.visualViewport?.height ?? window.innerHeight;
 }
 
+function getSiteHeaderHeight(): number {
+  const header = document.querySelector('.site-header');
+  if (header) {
+    return header.getBoundingClientRect().height;
+  }
+
+  const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const headerHeightValue = getComputedStyle(document.documentElement)
+    .getPropertyValue('--header-height')
+    .trim();
+  const remMatch = headerHeightValue.match(/^([\d.]+)rem$/);
+
+  if (remMatch) {
+    return parseFloat(remMatch[1]) * rootFontSize;
+  }
+
+  return rootFontSize * 7.5;
+}
+
+/** Maximum sheet height — fills the viewport below the site header. */
+function getMaxSheetHeight(): number {
+  return Math.max(0, getViewportHeight() - getSiteHeaderHeight());
+}
+
 function snapHeightFor(point: SnapPoint): number {
   const vh = getViewportHeight();
+  const maxHeight = getMaxSheetHeight();
+
   if (point === 'collapsed') {
-    return vh * SNAP_COLLAPSED;
+    return Math.min(vh * SNAP_COLLAPSED, maxHeight);
   }
   if (point === 'half') {
-    return vh * SNAP_HALF;
+    return Math.min(vh * SNAP_HALF, maxHeight);
   }
-  return vh * SNAP_FULL;
+  return maxHeight;
 }
 
 function nearestSnap(height: number): SnapPoint | 'dismiss' {
   const vh = getViewportHeight();
+  const maxHeight = getMaxSheetHeight();
 
   if (height < vh * DISMISS_THRESHOLD) {
     return 'dismiss';
   }
 
   const candidates: Array<{ point: SnapPoint; height: number }> = [
-    { point: 'collapsed', height: vh * SNAP_COLLAPSED },
-    { point: 'half', height: vh * SNAP_HALF },
-    { point: 'full', height: vh * SNAP_FULL },
+    { point: 'collapsed', height: Math.min(vh * SNAP_COLLAPSED, maxHeight) },
+    { point: 'half', height: Math.min(vh * SNAP_HALF, maxHeight) },
+    { point: 'full', height: maxHeight },
   ];
 
   let closest = candidates[0];
@@ -136,6 +163,7 @@ export function CampusMobileBottomSheet({
   const [sheetHeight, setSheetHeight] = useState(() => snapHeightFor('collapsed'));
   const [snapPoint, setSnapPoint] = useState<SnapPoint>('collapsed');
   const [isDragging, setIsDragging] = useState(false);
+  const [isDragZonePressed, setIsDragZonePressed] = useState(false);
   const [isPopping, setIsPopping] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
@@ -144,6 +172,8 @@ export function CampusMobileBottomSheet({
   const dragStartHeightRef = useRef(0);
   const sheetHeightRef = useRef(sheetHeight);
   const isDraggingRef = useRef(false);
+  const dragMovedRef = useRef(false);
+  const dragPointerTargetRef = useRef<EventTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
 
@@ -246,22 +276,50 @@ export function CampusMobileBottomSheet({
     [reportSheetTop],
   );
 
-  const handleDragStart = (clientY: number) => {
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    setSheetDragging(true);
-    dragStartYRef.current = clientY;
-    dragStartHeightRef.current = sheetHeight;
-  };
+  const handleTitleTap = useCallback(() => {
+    if (snapPoint === 'collapsed') {
+      snapTo('half');
+      return;
+    }
+
+    if (snapPoint === 'half') {
+      snapTo('full');
+    }
+  }, [snapPoint, snapTo]);
+
+  const startDrag = useCallback(
+    (clientY: number, target: EventTarget | null) => {
+      dragMovedRef.current = false;
+      dragPointerTargetRef.current = target;
+      isDraggingRef.current = true;
+      setIsDragging(true);
+      setIsDragZonePressed(true);
+      setSheetDragging(true);
+      dragStartYRef.current = clientY;
+      dragStartHeightRef.current = sheetHeight;
+    },
+    [setSheetDragging, sheetHeight],
+  );
 
   const endDrag = useCallback(() => {
     if (!isDraggingRef.current) {
       return;
     }
 
+    const wasTap = !dragMovedRef.current;
+    const pointerTarget = dragPointerTargetRef.current;
+
     isDraggingRef.current = false;
     setIsDragging(false);
+    setIsDragZonePressed(false);
     setSheetDragging(false);
+
+    if (wasTap) {
+      if (pointerTarget instanceof Element && pointerTarget.closest('.mobile-sheet__title-btn')) {
+        handleTitleTap();
+      }
+      return;
+    }
 
     const result = nearestSnap(sheetHeightRef.current);
 
@@ -271,12 +329,27 @@ export function CampusMobileBottomSheet({
     }
 
     snapTo(result);
-  }, [onDismiss, setSheetDragging, snapTo]);
+  }, [handleTitleTap, onDismiss, setSheetDragging, snapTo]);
 
   useEffect(() => {
     if (!isDragging) {
       return;
     }
+
+    const applyDragMove = (clientY: number) => {
+      const deltaY = dragStartYRef.current - clientY;
+
+      if (Math.abs(deltaY) > DRAG_MOVE_THRESHOLD) {
+        dragMovedRef.current = true;
+      }
+
+      const nextHeight = Math.min(
+        getMaxSheetHeight(),
+        Math.max(0, dragStartHeightRef.current + deltaY),
+      );
+      setSheetHeight(nextHeight);
+      reportSheetTop(nextHeight);
+    };
 
     const onTouchMove = (event: TouchEvent) => {
       event.preventDefault();
@@ -284,39 +357,62 @@ export function CampusMobileBottomSheet({
         return;
       }
 
-      const deltaY = dragStartYRef.current - event.touches[0].clientY;
-      const vh = getViewportHeight();
-      const nextHeight = Math.min(
-        vh * SNAP_FULL,
-        Math.max(0, dragStartHeightRef.current + deltaY),
-      );
-      setSheetHeight(nextHeight);
-      reportSheetTop(nextHeight);
+      applyDragMove(event.touches[0].clientY);
     };
 
-    const onTouchEnd = () => endDrag();
+    const onMouseMove = (event: MouseEvent) => {
+      event.preventDefault();
+      applyDragMove(event.clientY);
+    };
+
+    const finishDrag = () => endDrag();
 
     document.addEventListener('touchmove', onTouchMove, { passive: false });
-    document.addEventListener('touchend', onTouchEnd);
-    document.addEventListener('touchcancel', onTouchEnd);
+    document.addEventListener('touchend', finishDrag);
+    document.addEventListener('touchcancel', finishDrag);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', finishDrag);
 
     return () => {
       document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-      document.removeEventListener('touchcancel', onTouchEnd);
+      document.removeEventListener('touchend', finishDrag);
+      document.removeEventListener('touchcancel', finishDrag);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', finishDrag);
     };
   }, [isDragging, endDrag, reportSheetTop]);
 
-  const handleTitleTap = () => {
-    if (snapPoint === 'collapsed') {
-      snapTo('half');
+  const handleDragZoneTouchStart = (event: React.TouchEvent) => {
+    if (event.touches.length !== 1) {
       return;
     }
 
-    if (snapPoint === 'half') {
-      snapTo('full');
+    startDrag(event.touches[0].clientY, event.target);
+  };
+
+  const handleDragZoneMouseDown = (event: React.MouseEvent) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    startDrag(event.clientY, event.target);
+  };
+
+  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleTitleTap();
     }
   };
+
+  const dragZoneClassName = [
+    'mobile-sheet__drag-zone',
+    isDragZonePressed ? 'mobile-sheet__drag-zone--pressed' : '',
+    isDragging ? 'mobile-sheet__drag-zone--grabbing' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const handleMarkPrayed = () => {
     if (campus.prayedFor) {
@@ -350,15 +446,26 @@ export function CampusMobileBottomSheet({
         aria-label={getCampusPrimaryName(campus)}
       >
       <div
-        className="mobile-sheet__drag-zone"
-        onTouchStart={(event) => {
-          if (event.touches.length !== 1) {
-            return;
-          }
-          handleDragStart(event.touches[0].clientY);
-        }}
+        className={dragZoneClassName}
+        onTouchStart={handleDragZoneTouchStart}
+        onMouseDown={handleDragZoneMouseDown}
       >
-        <div className="mobile-sheet__handle" aria-hidden="true" />
+        <div className="mobile-sheet__handle-wrap" aria-hidden="true">
+          <div className="mobile-sheet__handle" />
+        </div>
+
+        <p className="mobile-sheet__location">{locationLine}</p>
+
+        <button
+          type="button"
+          className="mobile-sheet__title-btn"
+          onKeyDown={handleTitleKeyDown}
+        >
+          <span className="mobile-sheet__name">{getCampusPrimaryName(campus)}</span>
+          {snapPoint !== 'full' && <ChevronUpIcon />}
+        </button>
+
+        {secondaryName && <p className="mobile-sheet__name-th">{secondaryName}</p>}
       </div>
 
       <div
@@ -366,19 +473,6 @@ export function CampusMobileBottomSheet({
         className="mobile-sheet__scroll"
         onTouchMove={(event) => event.stopPropagation()}
       >
-        <p className="mobile-sheet__location">{locationLine}</p>
-
-        <button
-          type="button"
-          className="mobile-sheet__title-btn"
-          onClick={handleTitleTap}
-        >
-          <span className="mobile-sheet__name">{getCampusPrimaryName(campus)}</span>
-          {snapPoint !== 'full' && <ChevronUpIcon />}
-        </button>
-
-        {secondaryName && <p className="mobile-sheet__name-th">{secondaryName}</p>}
-
         <button
           type="button"
           className={
