@@ -4,6 +4,16 @@ import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
 import { useMobileMapOverlay } from '../hooks/useMobileMapOverlay';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
+import {
+  createScrollGestureState,
+  decideScrollGestureMode,
+  isAtFullExpansion,
+  isScrollAtTop,
+  resolveSnapWithVelocity,
+  updateGestureVelocity,
+  type ScrollGestureState,
+  type SnapPoint,
+} from '../utils/bottomSheetGestures';
 import { buildCampusPrayerPrompt } from '../utils/campusPrayerPrompt';
 import { getMobileSheetPortalElement } from '../utils/mobileSheetPortal';
 import { CampusMiniMap } from './CampusMiniMap';
@@ -14,8 +24,6 @@ type CampusMobileBottomSheetProps = {
   onLogPrayerWalk: (campusId: string) => void;
   onSheetTopChange: (sheetTop: number) => void;
 };
-
-type SnapPoint = 'collapsed' | 'half' | 'full';
 
 const SNAP_COLLAPSED = 0.3;
 const SNAP_HALF = 0.6;
@@ -72,32 +80,15 @@ function snapHeightFor(point: SnapPoint): number {
   return maxHeight;
 }
 
-function nearestSnap(height: number): SnapPoint | 'dismiss' {
+function getSnapHeights() {
   const vh = getViewportHeight();
   const maxHeight = getMaxSheetHeight();
 
-  if (height < vh * DISMISS_THRESHOLD) {
-    return 'dismiss';
-  }
-
-  const candidates: Array<{ point: SnapPoint; height: number }> = [
-    { point: 'collapsed', height: Math.min(vh * SNAP_COLLAPSED, maxHeight) },
-    { point: 'half', height: Math.min(vh * SNAP_HALF, maxHeight) },
-    { point: 'full', height: maxHeight },
-  ];
-
-  let closest = candidates[0];
-  let minDistance = Math.abs(height - closest.height);
-
-  for (const candidate of candidates.slice(1)) {
-    const distance = Math.abs(height - candidate.height);
-    if (distance < minDistance) {
-      minDistance = distance;
-      closest = candidate;
-    }
-  }
-
-  return closest.point;
+  return {
+    collapsed: Math.min(vh * SNAP_COLLAPSED, maxHeight),
+    half: Math.min(vh * SNAP_HALF, maxHeight),
+    full: maxHeight,
+  };
 }
 
 function PrayerHandsIcon() {
@@ -174,8 +165,14 @@ export function CampusMobileBottomSheet({
   const isDraggingRef = useRef(false);
   const dragMovedRef = useRef(false);
   const dragPointerTargetRef = useRef<EventTarget | null>(null);
+  const dragVelocityRef = useRef(0);
+  const dragLastMoveRef = useRef({ y: 0, time: 0 });
+  const scrollGestureRef = useRef<ScrollGestureState | null>(null);
+  const snapPointRef = useRef(snapPoint);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
+
+  snapPointRef.current = snapPoint;
 
   sheetHeightRef.current = sheetHeight;
 
@@ -287,61 +284,83 @@ export function CampusMobileBottomSheet({
     }
   }, [snapPoint, snapTo]);
 
-  const startDrag = useCallback(
-    (clientY: number, target: EventTarget | null) => {
-      dragMovedRef.current = false;
-      dragPointerTargetRef.current = target;
-      isDraggingRef.current = true;
-      setIsDragging(true);
-      setIsDragZonePressed(true);
-      setSheetDragging(true);
-      dragStartYRef.current = clientY;
-      dragStartHeightRef.current = sheetHeight;
+  const finishSheetGesture = useCallback(
+    (velocity: number, options?: { allowTitleTap?: boolean }) => {
+      if (!isDraggingRef.current) {
+        return;
+      }
+
+      const wasTap = !dragMovedRef.current;
+      const pointerTarget = dragPointerTargetRef.current;
+
+      isDraggingRef.current = false;
+      setIsDragging(false);
+      setIsDragZonePressed(false);
+      setSheetDragging(false);
+      scrollGestureRef.current = null;
+
+      if (wasTap && options?.allowTitleTap) {
+        if (pointerTarget instanceof Element && pointerTarget.closest('.mobile-sheet__title-btn')) {
+          handleTitleTap();
+        }
+        return;
+      }
+
+      if (wasTap) {
+        return;
+      }
+
+      const vh = getViewportHeight();
+      const heights = getSnapHeights();
+      const result = resolveSnapWithVelocity(
+        sheetHeightRef.current,
+        velocity,
+        snapPointRef.current,
+        heights,
+        DISMISS_THRESHOLD,
+        vh,
+      );
+
+      if (result === 'dismiss') {
+        onDismiss();
+        return;
+      }
+
+      snapTo(result);
     },
-    [setSheetDragging, sheetHeight],
+    [handleTitleTap, onDismiss, setSheetDragging, snapTo],
   );
 
-  const endDrag = useCallback(() => {
-    if (!isDraggingRef.current) {
-      return;
-    }
+  const beginSheetDrag = useCallback(
+    (clientY: number, target: EventTarget | null, options?: { pressed?: boolean }) => {
+      dragMovedRef.current = false;
+      dragPointerTargetRef.current = target;
+      dragVelocityRef.current = 0;
+      dragLastMoveRef.current = { y: clientY, time: Date.now() };
+      isDraggingRef.current = true;
+      setIsDragging(true);
+      setIsDragZonePressed(options?.pressed ?? false);
+      setSheetDragging(true);
+      dragStartYRef.current = clientY;
+      dragStartHeightRef.current = sheetHeightRef.current;
+    },
+    [setSheetDragging],
+  );
 
-    const wasTap = !dragMovedRef.current;
-    const pointerTarget = dragPointerTargetRef.current;
-
-    isDraggingRef.current = false;
-    setIsDragging(false);
-    setIsDragZonePressed(false);
-    setSheetDragging(false);
-
-    if (wasTap) {
-      if (pointerTarget instanceof Element && pointerTarget.closest('.mobile-sheet__title-btn')) {
-        handleTitleTap();
-      }
-      return;
-    }
-
-    const result = nearestSnap(sheetHeightRef.current);
-
-    if (result === 'dismiss') {
-      onDismiss();
-      return;
-    }
-
-    snapTo(result);
-  }, [handleTitleTap, onDismiss, setSheetDragging, snapTo]);
-
-  useEffect(() => {
-    if (!isDragging) {
-      return;
-    }
-
-    const applyDragMove = (clientY: number) => {
+  const applySheetDrag = useCallback(
+    (clientY: number) => {
       const deltaY = dragStartYRef.current - clientY;
 
       if (Math.abs(deltaY) > DRAG_MOVE_THRESHOLD) {
         dragMovedRef.current = true;
       }
+
+      const now = Date.now();
+      const elapsed = now - dragLastMoveRef.current.time;
+      if (elapsed > 0) {
+        dragVelocityRef.current = (dragLastMoveRef.current.y - clientY) / elapsed;
+      }
+      dragLastMoveRef.current = { y: clientY, time: now };
 
       const nextHeight = Math.min(
         getMaxSheetHeight(),
@@ -349,23 +368,36 @@ export function CampusMobileBottomSheet({
       );
       setSheetHeight(nextHeight);
       reportSheetTop(nextHeight);
-    };
+    },
+    [reportSheetTop],
+  );
 
+  useEffect(() => {
     const onTouchMove = (event: TouchEvent) => {
-      event.preventDefault();
-      if (event.touches.length !== 1) {
+      if (!isDraggingRef.current || event.touches.length !== 1) {
         return;
       }
 
-      applyDragMove(event.touches[0].clientY);
+      event.preventDefault();
+      applySheetDrag(event.touches[0].clientY);
     };
 
     const onMouseMove = (event: MouseEvent) => {
+      if (!isDraggingRef.current) {
+        return;
+      }
+
       event.preventDefault();
-      applyDragMove(event.clientY);
+      applySheetDrag(event.clientY);
     };
 
-    const finishDrag = () => endDrag();
+    const finishDrag = () => {
+      if (!isDraggingRef.current) {
+        return;
+      }
+
+      finishSheetGesture(dragVelocityRef.current, { allowTitleTap: true });
+    };
 
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', finishDrag);
@@ -380,14 +412,125 @@ export function CampusMobileBottomSheet({
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', finishDrag);
     };
-  }, [isDragging, endDrag, reportSheetTop]);
+  }, [applySheetDrag, finishSheetGesture]);
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) {
+      return;
+    }
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1 || isDraggingRef.current) {
+        return;
+      }
+
+      scrollGestureRef.current = createScrollGestureState(
+        event.touches[0].clientY,
+        sheetHeightRef.current,
+        scrollEl.scrollTop,
+      );
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        return;
+      }
+
+      const gesture = scrollGestureRef.current;
+      if (!gesture) {
+        return;
+      }
+
+      const clientY = event.touches[0].clientY;
+      const scrollTop = scrollEl.scrollTop;
+      const maxHeight = getMaxSheetHeight();
+      const atFull = isAtFullExpansion(sheetHeightRef.current, maxHeight);
+
+      if (gesture.mode === 'content') {
+        const stepDelta = clientY - gesture.lastY;
+        updateGestureVelocity(gesture, clientY);
+
+        if (atFull && isScrollAtTop(scrollTop) && stepDelta > 0) {
+          gesture.mode = 'sheet';
+          gesture.startY = clientY;
+          gesture.startHeight = sheetHeightRef.current;
+          beginSheetDrag(clientY, event.target);
+          event.preventDefault();
+          applySheetDrag(clientY);
+        }
+
+        return;
+      }
+
+      if (gesture.mode === 'undecided') {
+        const nextMode = decideScrollGestureMode(
+          gesture,
+          clientY,
+          scrollTop,
+          atFull,
+          scrollEl,
+          DRAG_MOVE_THRESHOLD,
+        );
+
+        if (nextMode === 'undecided') {
+          updateGestureVelocity(gesture, clientY);
+          return;
+        }
+
+        gesture.mode = nextMode;
+
+        if (nextMode === 'content') {
+          updateGestureVelocity(gesture, clientY);
+          return;
+        }
+      }
+
+      if (gesture.mode === 'sheet') {
+        if (!isDraggingRef.current) {
+          beginSheetDrag(clientY, event.target);
+        }
+
+        event.preventDefault();
+        updateGestureVelocity(gesture, clientY);
+        applySheetDrag(clientY);
+      }
+    };
+
+    const onTouchEnd = () => {
+      const gesture = scrollGestureRef.current;
+      if (!gesture) {
+        return;
+      }
+
+      if (gesture.mode === 'sheet' && isDraggingRef.current) {
+        finishSheetGesture(gesture.velocity);
+        return;
+      }
+
+      scrollGestureRef.current = null;
+    };
+
+    scrollEl.addEventListener('touchstart', onTouchStart, { passive: true });
+    scrollEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    scrollEl.addEventListener('touchend', onTouchEnd);
+    scrollEl.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      scrollEl.removeEventListener('touchstart', onTouchStart);
+      scrollEl.removeEventListener('touchmove', onTouchMove);
+      scrollEl.removeEventListener('touchend', onTouchEnd);
+      scrollEl.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [applySheetDrag, beginSheetDrag, finishSheetGesture]);
 
   const handleDragZoneTouchStart = (event: React.TouchEvent) => {
     if (event.touches.length !== 1) {
       return;
     }
 
-    startDrag(event.touches[0].clientY, event.target);
+    scrollGestureRef.current = null;
+    beginSheetDrag(event.touches[0].clientY, event.target, { pressed: true });
   };
 
   const handleDragZoneMouseDown = (event: React.MouseEvent) => {
@@ -396,7 +539,8 @@ export function CampusMobileBottomSheet({
     }
 
     event.preventDefault();
-    startDrag(event.clientY, event.target);
+    scrollGestureRef.current = null;
+    beginSheetDrag(event.clientY, event.target, { pressed: true });
   };
 
   const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -470,8 +614,11 @@ export function CampusMobileBottomSheet({
 
       <div
         ref={scrollRef}
-        className="mobile-sheet__scroll"
-        onTouchMove={(event) => event.stopPropagation()}
+        className={
+          isDragging
+            ? 'mobile-sheet__scroll mobile-sheet__scroll--locked'
+            : 'mobile-sheet__scroll'
+        }
       >
         <button
           type="button"

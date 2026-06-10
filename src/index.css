@@ -2435,8 +2435,10 @@ html.lang-th .hero-headline {
     touch-action: none;
   }
 
-  .mobile-sheet--dragging .mobile-sheet__scroll {
+  .mobile-sheet--dragging .mobile-sheet__scroll,
+  .mobile-sheet__scroll--locked {
     touch-action: none;
+    overflow: hidden;
   }
 
   .mobile-sheet__drag-zone {
