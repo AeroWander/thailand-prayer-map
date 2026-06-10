@@ -203,13 +203,6 @@ export function CampusMobileBottomSheet({
     return () => observer.disconnect();
   }, [measureCollapsedHeight]);
 
-  const snapHeightFor = useCallback(
-    (point: SnapPoint): number => {
-      return point === 'full' ? getMaxSheetHeight() : collapsedHeightRef.current;
-    },
-    [],
-  );
-
   const getSnapHeights = useCallback(
     () => ({
       collapsed: collapsedHeightRef.current,

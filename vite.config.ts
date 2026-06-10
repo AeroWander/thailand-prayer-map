@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'Thailand_NewShield_Name_solid_navy.png', 'topo-pattern.svg'],
       manifest: {
