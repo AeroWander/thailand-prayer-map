@@ -2570,7 +2570,7 @@ html.lang-th .hero-headline {
 
   @keyframes peek-bob {
     0%, 100% { transform: translateY(0); opacity: 0.7; }
-    50%       { transform: translateY(-4px); opacity: 1; }
+    50%       { transform: translateY(4px); opacity: 1; }
   }
 
   .mobile-sheet__prayer {

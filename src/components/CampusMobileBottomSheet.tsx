@@ -618,10 +618,10 @@ export function CampusMobileBottomSheet({
             }
             aria-hidden="true"
           >
-            <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
-              <path d="M1 8.5L8 1.5L15 8.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
             <span className="mobile-sheet__peek-label">{t.explore.moreInfo}</span>
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none">
+              <path d="M1 1.5L8 8.5L15 1.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
         </div>
 
