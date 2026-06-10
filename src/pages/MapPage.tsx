@@ -177,8 +177,8 @@ function MapPageContent() {
 
   const selectCampus = useCallback(
     (campus: Campus) => {
-      openCampusDetail(campus);
       flyToCampus(campus);
+      openCampusDetail(campus);
     },
     [flyToCampus, openCampusDetail],
   );

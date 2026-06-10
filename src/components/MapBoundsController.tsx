@@ -4,6 +4,7 @@ import { useMapNavigationGuard } from '../context/MapNavigationGuard';
 import type { Campus } from '../types/campus';
 import {
   fitMapToCampuses,
+  getIsMapNavigating,
   isCountryView,
   resetMapToThailand,
 } from '../utils/mapBounds';
@@ -33,6 +34,10 @@ export function MapBoundsController({
   const boundsKey = `${selectedRegion}|${selectedProvince}`;
 
   useEffect(() => {
+    if (getIsMapNavigating()) {
+      return;
+    }
+
     if (isPrayerUpdateRef.current) {
       isPrayerUpdateRef.current = false;
       lastBoundsKeyRef.current = boundsKey;

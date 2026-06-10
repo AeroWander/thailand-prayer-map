@@ -134,7 +134,7 @@ export function MapTravelController({
       if (!cancelled && flyStarted) {
         finishTravel();
       }
-    }, MAP_FLY_DURATION * 1000 + 250);
+    }, MAP_FLY_DURATION * 1000 + 500);
 
     return () => {
       cancelled = true;
