@@ -1,0 +1,14 @@
+---
+description: Git workflow for this project
+alwaysApply: true
+---
+
+# Git Workflow
+
+Always commit directly to `main`. Never create feature branches.
+
+```bash
+git add .
+git commit -m "..."
+git push origin main
+```

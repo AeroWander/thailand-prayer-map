@@ -47,9 +47,12 @@ function applyArrivalUi(
     setSelectedRegion: (region: string) => void;
     setIsPanelArrival: (arrival: boolean) => void;
   },
+  isMobile: boolean,
 ) {
   setters.setIsPanelArrival(true);
-  setters.setIsExploreOpen(true);
+  // On mobile a campus arrival goes straight to the bottom sheet — no explore panel
+  const openExplore = !(isMobile && target.type === 'campus');
+  setters.setIsExploreOpen(openExplore);
 
   if (target.type === 'campus') {
     const campus = findCampusFromTravel(campuses, target);
@@ -86,6 +89,12 @@ function MapPageContent() {
   const [isPanelArrival, setIsPanelArrival] = useState(Boolean(initialTravel));
   const [isExploreOpen, setIsExploreOpen] = useState(() => {
     if (initialTravel) {
+      const onMobile =
+        typeof window !== 'undefined' && window.matchMedia(MOBILE_MEDIA_QUERY).matches;
+      // Mobile campus arrivals skip the explore panel and go straight to the bottom sheet
+      if (onMobile && initialTravel.type === 'campus') {
+        return false;
+      }
       return true;
     }
 
@@ -119,15 +128,20 @@ function MapPageContent() {
       return;
     }
 
-    applyArrivalUi(location.state, campuses, {
-      setIsExploreOpen,
-      setPanelView,
-      setSelectedCampusId,
-      setListScrollCampusId,
-      setSelectedProvince,
-      setSelectedRegion,
-      setIsPanelArrival,
-    });
+    applyArrivalUi(
+      location.state,
+      campuses,
+      {
+        setIsExploreOpen,
+        setPanelView,
+        setSelectedCampusId,
+        setListScrollCampusId,
+        setSelectedProvince,
+        setSelectedRegion,
+        setIsPanelArrival,
+      },
+      isMobile,
+    );
     setTravelTarget(location.state);
     navigate('/map', { replace: true, state: null });
   }, [location.state, navigate, campuses]);
