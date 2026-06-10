@@ -8,6 +8,7 @@ import { CampusMapMarker } from './CampusMapMarker';
 import { ProvinceBoundariesLayer } from './ProvinceBoundariesLayer';
 import { MapBoundsController } from './MapBoundsController';
 import { MapFlyToBridge } from '../context/MapFlyToContext';
+import { MapSheetTouchLockBridge } from './MapSheetTouchLockBridge';
 import { MapTravelController } from './MapTravelController';
 import { MapZoomWatcher } from './MapZoomWatcher';
 import { THAILAND_CENTER, THAILAND_ZOOM } from '../utils/mapBounds';
@@ -71,6 +72,7 @@ export function MapView({
           />
         )}
         <MapFlyToBridge />
+        <MapSheetTouchLockBridge />
         <MapZoomWatcher onZoomChange={setMapZoom} />
         <TileLayer
           attribution='&copy; OpenStreetMap contributors &copy; CARTO'

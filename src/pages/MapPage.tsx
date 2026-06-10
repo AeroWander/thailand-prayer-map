@@ -10,6 +10,7 @@ import { UniversitySearch } from '../components/UniversitySearch';
 import { MOBILE_MEDIA_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCampuses } from '../context/CampusContext';
 import { MapFlyToProvider, useMapFlyTo } from '../context/MapFlyToContext';
+import { MapSheetTouchLockProvider } from '../context/MapSheetTouchLockContext';
 import {
   MapNavigationGuardProvider,
   useMapNavigationGuard,
@@ -242,7 +243,9 @@ function MapPageContent() {
       <div
         className={
           isMobile
-            ? 'map-layout map-layout--mobile'
+            ? `map-layout map-layout--mobile${
+                panelView === 'detail' && selectedCampus ? ' map-layout--sheet-open' : ''
+              }`
             : isExploreOpen
               ? 'map-layout'
               : 'map-layout map-layout--panel-closed'
@@ -316,7 +319,9 @@ export function MapPage() {
   return (
     <MapNavigationGuardProvider>
       <MapFlyToProvider>
-        <MapPageContent />
+        <MapSheetTouchLockProvider>
+          <MapPageContent />
+        </MapSheetTouchLockProvider>
       </MapFlyToProvider>
     </MapNavigationGuardProvider>
   );

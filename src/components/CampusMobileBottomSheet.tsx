@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useMapSheetTouchLock } from '../context/MapSheetTouchLockContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
 import { buildCampusPrayerPrompt } from '../utils/campusPrayerPrompt';
@@ -135,9 +137,11 @@ export function CampusMobileBottomSheet({
   const [isPopping, setIsPopping] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
 
+  const { setSheetDragging } = useMapSheetTouchLock();
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(0);
   const sheetHeightRef = useRef(sheetHeight);
+  const isDraggingRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
 
@@ -173,6 +177,15 @@ export function CampusMobileBottomSheet({
     setSheetHeight(snapHeightFor('collapsed'));
     setSnapPoint('collapsed');
   }, [campus.id]);
+
+  useEffect(() => {
+    return () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        setSheetDragging(false);
+      }
+    };
+  }, [setSheetDragging]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -222,25 +235,22 @@ export function CampusMobileBottomSheet({
   );
 
   const handleDragStart = (clientY: number) => {
+    isDraggingRef.current = true;
     setIsDragging(true);
+    setSheetDragging(true);
     dragStartYRef.current = clientY;
     dragStartHeightRef.current = sheetHeight;
   };
 
-  const handleDragMove = (clientY: number) => {
-    const deltaY = dragStartYRef.current - clientY;
-    const vh = getViewportHeight();
-    const nextHeight = Math.min(vh * SNAP_FULL, Math.max(0, dragStartHeightRef.current + deltaY));
-    setSheetHeight(nextHeight);
-    reportSheetTop(nextHeight);
-  };
-
-  const handleDragEnd = () => {
-    if (!isDragging) {
+  const endDrag = useCallback(() => {
+    if (!isDraggingRef.current) {
       return;
     }
 
+    isDraggingRef.current = false;
     setIsDragging(false);
+    setSheetDragging(false);
+
     const result = nearestSnap(sheetHeightRef.current);
 
     if (result === 'dismiss') {
@@ -249,7 +259,41 @@ export function CampusMobileBottomSheet({
     }
 
     snapTo(result);
-  };
+  }, [onDismiss, setSheetDragging, snapTo]);
+
+  useEffect(() => {
+    if (!isDragging) {
+      return;
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      event.preventDefault();
+      if (event.touches.length !== 1) {
+        return;
+      }
+
+      const deltaY = dragStartYRef.current - event.touches[0].clientY;
+      const vh = getViewportHeight();
+      const nextHeight = Math.min(
+        vh * SNAP_FULL,
+        Math.max(0, dragStartHeightRef.current + deltaY),
+      );
+      setSheetHeight(nextHeight);
+      reportSheetTop(nextHeight);
+    };
+
+    const onTouchEnd = () => endDrag();
+
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+    document.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [isDragging, endDrag, reportSheetTop]);
 
   const handleTitleTap = () => {
     if (snapPoint === 'collapsed') {
@@ -277,10 +321,10 @@ export function CampusMobileBottomSheet({
     }
   };
 
-  return (
+  const sheet = (
     <aside
       ref={sheetRef}
-      className="mobile-sheet"
+      className={isDragging ? 'mobile-sheet mobile-sheet--dragging' : 'mobile-sheet'}
       style={{
         height: sheetHeight,
         transition: isDragging ? 'none' : SPRING_TRANSITION,
@@ -295,15 +339,6 @@ export function CampusMobileBottomSheet({
           }
           handleDragStart(event.touches[0].clientY);
         }}
-        onTouchMove={(event) => {
-          if (!isDragging || event.touches.length !== 1) {
-            return;
-          }
-          event.preventDefault();
-          handleDragMove(event.touches[0].clientY);
-        }}
-        onTouchEnd={handleDragEnd}
-        onTouchCancel={handleDragEnd}
       >
         <div className="mobile-sheet__handle" aria-hidden="true" />
       </div>
@@ -408,4 +443,6 @@ export function CampusMobileBottomSheet({
       )}
     </aside>
   );
+
+  return createPortal(sheet, document.body);
 }
