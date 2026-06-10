@@ -32,11 +32,12 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 function readStoredLanguage(): Language {
   if (typeof window === 'undefined') {
-    return 'en';
+    return 'th';
   }
 
   const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-  return stored === 'th' ? 'th' : 'en';
+  // Default to Thai; only switch to English if the user has explicitly chosen it.
+  return stored === 'en' ? 'en' : 'th';
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
