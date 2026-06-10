@@ -2,8 +2,8 @@ import { useLanguage } from '../i18n/LanguageContext';
 import type { Language } from '../i18n/translations';
 
 const OPTIONS: { value: Language; label: string }[] = [
-  { value: 'en', label: 'EN' },
   { value: 'th', label: 'ไทย' },
+  { value: 'en', label: 'EN' },
 ];
 
 export function LanguageToggle() {
