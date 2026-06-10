@@ -504,17 +504,29 @@ export function CampusMobileBottomSheet({
   }, [applySheetDrag, beginSheetDrag, finishSheetGesture]);
 
   // ── Event handlers ────────────────────────────────────────────────────────
-  const handleDragZoneTouchStart = (event: React.TouchEvent) => {
+
+  // Returns true if the event target is inside the visual drag zone (for the pressed highlight).
+  const isInDragZone = (target: EventTarget | null) =>
+    target instanceof Element && target.closest('.mobile-sheet__drag-zone') !== null;
+
+  // Touch anywhere in the collapsed content area (drag zone, button, hint) starts a drag.
+  const handleCollapsedTouchStart = (event: React.TouchEvent) => {
     if (event.touches.length !== 1) return;
     scrollGestureRef.current = null;
-    beginSheetDrag(event.touches[0].clientY, event.target, { pressed: true });
+    beginSheetDrag(event.touches[0].clientY, event.target, {
+      pressed: isInDragZone(event.target),
+    });
   };
 
-  const handleDragZoneMouseDown = (event: React.MouseEvent) => {
+  // Mouse: only prevent default on non-button areas so button focus still works.
+  const handleCollapsedMouseDown = (event: React.MouseEvent) => {
     if (event.button !== 0) return;
-    event.preventDefault();
+    const onButton = (event.target as Element).closest('button') !== null;
+    if (!onButton) event.preventDefault();
     scrollGestureRef.current = null;
-    beginSheetDrag(event.clientY, event.target, { pressed: true });
+    beginSheetDrag(event.clientY, event.target, {
+      pressed: isInDragZone(event.target),
+    });
   };
 
   const handleMarkPrayed = () => {
@@ -556,12 +568,12 @@ export function CampusMobileBottomSheet({
         aria-label={getCampusPrimaryName(campus)}
       >
         {/* ── Always-visible collapsed content (measured for snap height) ── */}
-        <div ref={collapsedContentRef}>
-          <div
-            className={dragZoneClassName}
-            onTouchStart={handleDragZoneTouchStart}
-            onMouseDown={handleDragZoneMouseDown}
-          >
+        <div
+          ref={collapsedContentRef}
+          onTouchStart={handleCollapsedTouchStart}
+          onMouseDown={handleCollapsedMouseDown}
+        >
+          <div className={dragZoneClassName}>
             <div className="mobile-sheet__handle-wrap" aria-hidden="true">
               <div className="mobile-sheet__handle" />
             </div>
