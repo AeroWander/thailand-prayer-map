@@ -59,6 +59,38 @@ body {
   height: 100%;
 }
 
+.prayer-walks-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.prayer-walks-loading__bar {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #1b5ea6 35%,
+    #5a9e7c 65%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: prayer-walks-loading 1.1s ease-in-out infinite;
+}
+
+@keyframes prayer-walks-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* ── Buttons ── */
 
 .btn {
