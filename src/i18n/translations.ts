@@ -15,6 +15,7 @@ type Scripture = {
 };
 
 export type TranslationSchema = {
+  documentTitle: string;
   nav: {
     map: string;
     pray: string;
@@ -144,6 +145,7 @@ export type TranslationSchema = {
 
 export const translations: Record<Language, TranslationSchema> = {
   en: {
+    documentTitle: 'Thailand Prayer Map',
     nav: {
       map: 'Map',
       pray: 'Pray',
@@ -343,6 +345,7 @@ export const translations: Record<Language, TranslationSchema> = {
     },
   },
   th: {
+    documentTitle: 'แผนที่อธิษฐานประเทศไทย',
     nav: {
       map: 'แผนที่',
       pray: 'อธิษฐาน',

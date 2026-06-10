@@ -50,6 +50,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = language;
     document.documentElement.classList.toggle('lang-th', language === 'th');
+    document.title = translations[language].documentTitle;
   }, [language]);
 
   const value = useMemo<LanguageContextValue>(() => {
