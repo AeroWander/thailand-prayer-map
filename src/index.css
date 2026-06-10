@@ -2543,6 +2543,24 @@ html.lang-th .hero-headline {
     margin: 0.5rem 1.25rem 0.75rem;
   }
 
+  .mobile-sheet__peek-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0 0.6rem;
+    color: #c4c9d4;
+  }
+
+  .mobile-sheet__peek-dots {
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: currentColor;
+    border-radius: 1px;
+    opacity: 0.6;
+  }
+
   .mobile-sheet__prayer {
     margin: 0.25rem 1.25rem 0;
   }
