@@ -91,9 +91,16 @@ function CheckIcon() {
   );
 }
 
-function ChevronUpIcon() {
+function ChevronUpIcon({ animate }: { animate?: boolean }) {
   return (
-    <svg className="mobile-sheet__chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+    <svg
+      className={animate ? 'mobile-sheet__chevron mobile-sheet__chevron--hint' : 'mobile-sheet__chevron'}
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
       <path d="M4 10.5 8 6.5 12 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
@@ -130,6 +137,9 @@ export function CampusMobileBottomSheet({
   const [isDragging, setIsDragging] = useState(false);
   const [isDragZonePressed, setIsDragZonePressed] = useState(false);
   const [isPopping, setIsPopping] = useState(false);
+  // Chevron hint animation: plays on each new campus, stops once user expands the sheet
+  const [chevronHintActive, setChevronHintActive] = useState(true);
+  const prevCampusIdRef = useRef(campus.id);
 
   const { setSheetDragging } = useMapSheetTouchLock();
 
@@ -152,6 +162,21 @@ export function CampusMobileBottomSheet({
   snapPointRef.current = snapPoint;
 
   const isExpanded = snapPoint === 'full';
+
+  // Disable chevron hint once the sheet has been fully expanded
+  useEffect(() => {
+    if (snapPoint === 'full') {
+      setChevronHintActive(false);
+    }
+  }, [snapPoint]);
+
+  // Reset chevron hint when a different campus is selected
+  useEffect(() => {
+    if (campus.id !== prevCampusIdRef.current) {
+      prevCampusIdRef.current = campus.id;
+      setChevronHintActive(true);
+    }
+  }, [campus.id]);
 
   const secondaryName = getCampusSecondaryName(campus);
   const prayerPrompt = campus.prayedFor
@@ -557,7 +582,7 @@ export function CampusMobileBottomSheet({
               }}
             >
               <span className="mobile-sheet__name">{getCampusPrimaryName(campus)}</span>
-              {!isExpanded && <ChevronUpIcon />}
+              {!isExpanded && <ChevronUpIcon animate={chevronHintActive && !isDragging} />}
             </button>
             {secondaryName && <p className="mobile-sheet__name-th">{secondaryName}</p>}
           </div>
