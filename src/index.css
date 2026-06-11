@@ -2706,6 +2706,7 @@ html.lang-th .hero-headline {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     max-width: 100%;
     gap: 0.5rem;
+    margin-top: 40px;
   }
 
   .landing-stat {
@@ -2720,19 +2721,28 @@ html.lang-th .hero-headline {
     font-size: 0.6875rem;
   }
 
+  .hero-search {
+    margin-top: 32px;
+  }
+
   .landing-vision__grid {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
 
   .landing-cta {
-    flex-direction: column;
+    flex-direction: row;
     align-items: stretch;
+    flex-wrap: nowrap;
+    margin-top: 32px;
   }
 
   .landing-cta__primary,
   .landing-cta__secondary {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
   }
 }
 
