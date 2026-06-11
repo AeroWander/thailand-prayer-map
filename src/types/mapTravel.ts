@@ -3,13 +3,15 @@ import { getProvinceCenter } from '../data/thailandProvinces';
 
 /** Navigation state passed from landing search → map page via React Router */
 export type MapNavigationState = {
-  type: 'campus' | 'province';
+  type: 'campus' | 'province' | 'city';
   name: string;
   lat: number;
   lng: number;
   province: string;
   /** Present for campus arrivals — used to open the detail panel */
   campusId?: string;
+  /** Present for city arrivals — the city / district name */
+  city?: string;
 };
 
 export function getProvinceCoordinates(
@@ -37,7 +39,7 @@ export function isMapNavigationState(value: unknown): value is MapNavigationStat
 
   const state = value as MapNavigationState;
   return (
-    (state.type === 'campus' || state.type === 'province') &&
+    (state.type === 'campus' || state.type === 'province' || state.type === 'city') &&
     typeof state.name === 'string' &&
     typeof state.lat === 'number' &&
     typeof state.lng === 'number' &&

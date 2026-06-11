@@ -1,21 +1,45 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { Campus } from '../types/campus';
-import { searchCampuses } from '../utils/searchCampuses';
+import { searchLocationsGrouped, type LocationSearchResult } from '../utils/searchLocations';
 
 type UniversitySearchProps = {
   campuses: Campus[];
   value: string;
   onChange: (query: string) => void;
-  onSelect: (campus: Campus) => void;
+  /** Called for any result type — province, city, or campus. Preferred over onSelect. */
+  onSelectResult?: (result: LocationSearchResult) => void;
+  /** Legacy campus-only callback. Used when onSelectResult is not provided. */
+  onSelect?: (campus: Campus) => void;
   variant?: 'inline' | 'floating';
   clearOnSelect?: boolean;
 };
+
+function LocationPinIcon() {
+  return (
+    <svg
+      className="university-search__pin"
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M8 1.5C5.65 1.5 3.75 3.45 3.75 5.85c0 3.15 4.25 8.65 4.25 8.65s4.25-5.5 4.25-8.65C12.25 3.45 10.35 1.5 8 1.5Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+      />
+      <circle cx="8" cy="5.75" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
 
 export function UniversitySearch({
   campuses,
   value,
   onChange,
+  onSelectResult,
   onSelect,
   variant = 'inline',
   clearOnSelect = false,
@@ -27,11 +51,12 @@ export function UniversitySearch({
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const results = useMemo(
-    () => searchCampuses(campuses, value),
+  const grouped = useMemo(
+    () => searchLocationsGrouped(campuses, value),
     [campuses, value],
   );
 
+  const allResults = grouped.selectable;
   const showDropdown = isOpen && value.trim().length > 0;
 
   const closeDropdown = () => {
@@ -39,10 +64,18 @@ export function UniversitySearch({
     setActiveIndex(-1);
   };
 
-  const selectCampus = (campus: Campus) => {
-    onChange(clearOnSelect ? '' : getCampusPrimaryName(campus));
+  const handleSelect = (result: LocationSearchResult) => {
+    if (result.kind === 'campus') {
+      onChange(clearOnSelect ? '' : getCampusPrimaryName(result.campus));
+    } else {
+      onChange(clearOnSelect ? '' : result.kind === 'city' ? result.city : getProvinceLabel(result.province));
+    }
     closeDropdown();
-    onSelect(campus);
+    if (onSelectResult) {
+      onSelectResult(result);
+    } else if (result.kind === 'campus' && onSelect) {
+      onSelect(result.campus);
+    }
     inputRef.current?.blur();
   };
 
@@ -67,26 +100,26 @@ export function UniversitySearch({
       return;
     }
 
-    if (event.key === 'ArrowDown' && showDropdown && results.length > 0) {
+    if (event.key === 'ArrowDown' && showDropdown && allResults.length > 0) {
       event.preventDefault();
-      setActiveIndex((index) => (index + 1) % results.length);
+      setActiveIndex((index) => (index + 1) % allResults.length);
       return;
     }
 
-    if (event.key === 'ArrowUp' && showDropdown && results.length > 0) {
+    if (event.key === 'ArrowUp' && showDropdown && allResults.length > 0) {
       event.preventDefault();
-      setActiveIndex((index) => (index <= 0 ? results.length - 1 : index - 1));
+      setActiveIndex((index) => (index <= 0 ? allResults.length - 1 : index - 1));
       return;
     }
 
     if (event.key === 'Enter') {
-      if (!showDropdown || results.length === 0) {
+      if (!showDropdown || allResults.length === 0) {
         return;
       }
 
       event.preventDefault();
       const index = activeIndex >= 0 ? activeIndex : 0;
-      selectCampus(results[index]);
+      handleSelect(allResults[index]);
     }
   };
 
@@ -97,6 +130,68 @@ export function UniversitySearch({
       setIsOpen(true);
     }
   };
+
+  const renderResult = (result: LocationSearchResult, index: number) => {
+    const isActive = index === activeIndex;
+    const optionClass = isActive
+      ? 'university-search__option university-search__option--active'
+      : 'university-search__option';
+
+    if (result.kind === 'campus') {
+      return (
+        <li
+          key={`campus-${result.campus.id}`}
+          id={`${listboxId}-option-${index}`}
+          role="option"
+          aria-selected={isActive}
+          className={optionClass}
+        >
+          <button
+            type="button"
+            className="university-search__option-btn"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => handleSelect(result)}
+          >
+            <span className="university-search__option-name">
+              {getCampusPrimaryName(result.campus)}
+            </span>
+            <span className="university-search__option-province">
+              {getProvinceLabel(result.campus.province)} · {getRegionLabel(result.campus.region)}
+            </span>
+          </button>
+        </li>
+      );
+    }
+
+    const label = result.kind === 'city' ? result.city : getProvinceLabel(result.province);
+    const meta = result.kind === 'city'
+      ? getProvinceLabel(result.province)
+      : t.landing.searchProvinceType;
+
+    return (
+      <li
+        key={`${result.kind}-${result.kind === 'city' ? result.city : result.province}`}
+        id={`${listboxId}-option-${index}`}
+        role="option"
+        aria-selected={isActive}
+        className={optionClass}
+      >
+        <button
+          type="button"
+          className="university-search__option-btn university-search__option-btn--location"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => handleSelect(result)}
+        >
+          <LocationPinIcon />
+          <span className="university-search__option-name">{label}</span>
+          <span className="university-search__option-province">{meta}</span>
+        </button>
+      </li>
+    );
+  };
+
+  const hasLocationResults = grouped.provinces.length > 0 || grouped.cities.length > 0;
+  const hasCampusResults = grouped.campuses.length > 0;
 
   const input = (
     <input
@@ -127,6 +222,8 @@ export function UniversitySearch({
       onKeyDown={handleKeyDown}
     />
   );
+
+  let optionIndex = 0;
 
   return (
     <div
@@ -182,38 +279,40 @@ export function UniversitySearch({
           role="listbox"
           aria-label={t.search.resultsAria}
         >
-          {results.length === 0 ? (
+          {allResults.length === 0 ? (
             <li className="university-search__empty" role="option" aria-selected={false}>
               {t.search.noResults}
             </li>
           ) : (
-            results.map((campus, index) => (
-              <li
-                key={campus.id}
-                id={`${listboxId}-option-${index}`}
-                role="option"
-                aria-selected={index === activeIndex}
-                className={
-                  index === activeIndex
-                    ? 'university-search__option university-search__option--active'
-                    : 'university-search__option'
-                }
-              >
-                <button
-                  type="button"
-                  className="university-search__option-btn"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => selectCampus(campus)}
-                >
-                  <span className="university-search__option-name">
-                    {getCampusPrimaryName(campus)}
-                  </span>
-                  <span className="university-search__option-province">
-                    {getProvinceLabel(campus.province)} · {getRegionLabel(campus.region)}
-                  </span>
-                </button>
-              </li>
-            ))
+            <>
+              {hasLocationResults && (
+                <>
+                  <li className="university-search__section" role="presentation">
+                    {t.landing.searchProvincesLabel}
+                  </li>
+                  {[...grouped.provinces, ...grouped.cities].map((result) => {
+                    const el = renderResult(result, optionIndex);
+                    optionIndex += 1;
+                    return el;
+                  })}
+                </>
+              )}
+              {hasCampusResults && (
+                <>
+                  {hasLocationResults && (
+                    <li className="university-search__divider" role="separator" />
+                  )}
+                  <li className="university-search__section" role="presentation">
+                    {t.landing.searchCampusesLabel}
+                  </li>
+                  {grouped.campuses.map((result) => {
+                    const el = renderResult(result, optionIndex);
+                    optionIndex += 1;
+                    return el;
+                  })}
+                </>
+              )}
+            </>
           )}
         </ul>
       )}

@@ -1230,6 +1230,44 @@ html.lang-th {
   color: var(--color-body);
 }
 
+.university-search__section {
+  padding: 0.35rem 0.875rem 0.15rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-body);
+  opacity: 0.6;
+}
+
+.university-search__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0.35rem 0;
+}
+
+.university-search__option-btn--location {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.university-search__option-btn--location .university-search__option-name {
+  flex: 1;
+}
+
+.university-search__option-btn--location .university-search__option-province {
+  margin-left: auto;
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.university-search__pin {
+  flex-shrink: 0;
+  color: var(--color-accent);
+  opacity: 0.75;
+}
+
 /* ── Map ── */
 
 .map-view {

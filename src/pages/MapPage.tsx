@@ -9,6 +9,7 @@ import { MapView } from '../components/MapView';
 import { UniversitySearch } from '../components/UniversitySearch';
 import { MOBILE_MEDIA_QUERY, useMediaQuery } from '../hooks/useMediaQuery';
 import { useCampuses } from '../context/CampusContext';
+import { useLanguage } from '../i18n/LanguageContext';
 import { MapFlyToProvider, useMapFlyTo } from '../context/MapFlyToContext';
 import { MapSheetTouchLockProvider } from '../context/MapSheetTouchLockContext';
 import {
@@ -17,6 +18,8 @@ import {
 } from '../context/MapNavigationGuard';
 import type { Campus } from '../types/campus';
 import { isMapNavigationState, type MapNavigationState } from '../types/mapTravel';
+import { buildMapNavigationState } from '../utils/mapNavigation';
+import type { LocationSearchResult } from '../utils/searchLocations';
 
 function findCampusFromTravel(
   campuses: Campus[],
@@ -64,8 +67,11 @@ function applyArrivalUi(
     return;
   }
 
-  // Province/city arrival: highlight the boundary but do NOT filter pins —
-  // all campuses across Thailand remain visible on the map.
+  // target.type === 'province' | 'city'
+  // Province or city arrival: highlight the province boundary as a visual landmark
+  // but do NOT filter campus pins — all campuses across Thailand remain visible.
+  // For cities we fall back to their parent province boundary since no district
+  // GeoJSON is available yet.
   setters.setSelectedProvince('All');
   setters.setSelectedRegion('All');
   setters.setHighlightedProvince(target.province);
@@ -79,6 +85,7 @@ function MapPageContent() {
   const navigate = useNavigate();
   const { clearUserInteracting, markPrayerUpdate } = useMapNavigationGuard();
   const flyToCampus = useMapFlyTo();
+  const { getCampusPrimaryName, getProvinceLabel } = useLanguage();
   const { campuses, logPrayerWalk } = useCampuses();
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const searchOverlayRef = useRef<HTMLDivElement>(null);
@@ -279,12 +286,29 @@ function MapPageContent() {
     window.setTimeout(() => setIsPanelArrival(false), 500);
   }, []);
 
-  const handleSearchSelect = useCallback(
-    (campus: Campus) => {
+  const handleSearchSelectResult = useCallback(
+    (result: LocationSearchResult) => {
       setSearchQuery('');
-      selectCampus(campus);
+      if (result.kind === 'campus') {
+        selectCampus(result.campus);
+        return;
+      }
+      // Province or city result from the floating map search.
+      // Set the boundary highlight and trigger the map travel animation.
+      const state = buildMapNavigationState(result, campuses, getCampusPrimaryName, getProvinceLabel);
+      setHighlightedProvince(state.province);
+      setSelectedProvince('All');
+      setSelectedRegion('All');
+      setTravelTarget(state);
+      setIsPanelArrival(true);
+      if (isMobile) {
+        setIsExploreOpen(false);
+      } else {
+        setIsExploreOpen(true);
+        setPanelView('list');
+      }
     },
-    [selectCampus],
+    [selectCampus, campuses, getCampusPrimaryName, getProvinceLabel, isMobile],
   );
 
   return (
@@ -326,7 +350,7 @@ function MapPageContent() {
               campuses={campuses}
               value={searchQuery}
               onChange={setSearchQuery}
-              onSelect={handleSearchSelect}
+              onSelectResult={handleSearchSelectResult}
               clearOnSelect
             />
           </div>

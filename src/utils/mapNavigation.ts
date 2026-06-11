@@ -1,4 +1,5 @@
 import type { Campus } from '../types/campus';
+import { THAILAND_CITY_ALIASES } from '../data/thailandProvinces';
 import {
   getProvinceCoordinates,
   type MapNavigationState,
@@ -23,12 +24,26 @@ export function buildMapNavigationState(
   }
 
   const province = result.province;
-  const [lat, lng] = getProvinceCoordinates(province, campuses);
-  const name = result.kind === 'city' ? result.city : getProvinceLabel(province);
 
+  if (result.kind === 'city') {
+    // Use the city's own coordinates when available, otherwise fall back to province centre.
+    const alias = THAILAND_CITY_ALIASES.find((a) => a.city === result.city);
+    const lat = alias?.lat ?? getProvinceCoordinates(province, campuses)[0];
+    const lng = alias?.lng ?? getProvinceCoordinates(province, campuses)[1];
+    return {
+      type: 'city',
+      name: result.city,
+      lat,
+      lng,
+      province,
+      city: result.city,
+    };
+  }
+
+  const [lat, lng] = getProvinceCoordinates(province, campuses);
   return {
     type: 'province',
-    name,
+    name: getProvinceLabel(province),
     lat,
     lng,
     province,

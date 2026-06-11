@@ -88,7 +88,7 @@ export function MapTravelController({
         }
 
         const reached =
-          travel.type === 'campus'
+          travel.type === 'campus' || travel.type === 'city'
             ? hasReachedCampusNavigation(map, targetLatLng)
             : hasReachedProvinceNavigation(map, targetLatLng);
 
@@ -113,6 +113,13 @@ export function MapTravelController({
           return;
         }
 
+        // City arrivals zoom to the city's own coordinates for precision.
+        if (travel.type === 'city') {
+          navigateToCampus(map, { lat: travel.lat, lng: travel.lng });
+          return;
+        }
+
+        // Province arrivals fit the map to all campuses in the province.
         if (provinceCampuses.length > 0) {
           fitMapToCampuses(map, provinceCampuses);
           return;

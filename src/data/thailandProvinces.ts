@@ -90,10 +90,19 @@ export const THAILAND_PROVINCES: ThailandProvinceEntry[] = [
   { name: 'Yasothon', aliases: [], lat: 15.794, lng: 104.145 },
 ];
 
-/** Well-known city names that map to a province */
-export const THAILAND_CITY_ALIASES: { city: string; province: string; aliases?: string[] }[] = [
-  { city: 'Pattaya', province: 'Chonburi', aliases: ['Pattaya City'] },
-  { city: 'Hat Yai', province: 'Songkhla', aliases: ['Haad Yai', 'Hat Yai City'] },
+/** Well-known city / district names that map to a province */
+export type ThailandCityAlias = {
+  city: string;
+  province: string;
+  /** Approximate city-centre coordinates used for map zoom */
+  lat: number;
+  lng: number;
+  aliases?: string[];
+};
+
+export const THAILAND_CITY_ALIASES: ThailandCityAlias[] = [
+  { city: 'Pattaya', province: 'Chonburi', lat: 12.927, lng: 100.877, aliases: ['Pattaya City'] },
+  { city: 'Hat Yai', province: 'Songkhla', lat: 7.008, lng: 100.477, aliases: ['Haad Yai', 'Hat Yai City'] },
 ];
 
 function normalizeSearchText(value: string): string {
