@@ -40,11 +40,8 @@ export function resolveSnapWithVelocity(
     if (velocity > 0) {
       return 'full';
     }
-    // Flicking downward
-    if (currentSnap === 'collapsed' || height < viewportHeight * dismissThreshold) {
-      return 'dismiss';
-    }
-    return 'collapsed';
+    // Flicking downward always dismisses — whether from full or collapsed
+    return 'dismiss';
   }
 
   return nearestSnap(height, heights, dismissThreshold, viewportHeight);
