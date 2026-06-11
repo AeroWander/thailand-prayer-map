@@ -28,40 +28,15 @@ export type TranslationSchema = {
     searchPlaceholder: string;
     allRegions: string;
     allProvinces: string;
-    filtersAria: string;
-  };
-  stats: {
-    prayedFor: string;
-    totalCampuses: string;
-    campusesMatchingSearch: string;
-    campusesInProvince: string;
-    campusesInRegion: string;
-    goalDetailNational: string;
-    goalDetailInProvince: string;
-    goalDetailInRegion: string;
-    goalDetailSearch: string;
-    ariaLabel: string;
   };
   panel: {
-    province: string;
-    region: string;
     type: string;
     students: string;
     founded: string;
-    visitWebsite: string;
-    notYetPrayedFor: string;
-    prayedFor: string;
-    logPrayerWalk: string;
     markAsPrayed: string;
     prayedForButton: string;
-    prayerWalkLogged: string;
-    closeAria: string;
   };
   explore: {
-    campusesLeftToPrayerWalk: string;
-    togetherTagline: string;
-    totalCampuses: string;
-    prayedFor: string;
     notPrayed: string;
     prayed: string;
     campusKeyTitle: string;
@@ -69,17 +44,13 @@ export type TranslationSchema = {
     campusKeyPrayed: string;
     panelAria: string;
     campusListAria: string;
-    progressAria: string;
     closeAria: string;
     allCampuses: string;
     backAria: string;
     website: string;
     campusInfo: string;
-    scrollForMore: string;
     moreInfo: string;
     prayerPromptPrayed: string;
-    prayerHeading: string;
-    joinOthersPraying: string;
     studentsCount: string;
     prayerPrompts: {
       defaultPrompt: string;
@@ -114,9 +85,6 @@ export type TranslationSchema = {
     missionText: string;
     howItWorksTitle: string;
     howItWorksText: string;
-  };
-  common: {
-    of: string;
   };
   landing: {
     headline: string;
@@ -160,40 +128,15 @@ export const translations: Record<Language, TranslationSchema> = {
       searchPlaceholder: 'Search universities...',
       allRegions: 'All Regions',
       allProvinces: 'All Provinces',
-      filtersAria: 'Filters and statistics',
-    },
-    stats: {
-      prayedFor: 'Prayed for',
-      totalCampuses: 'Total campuses',
-      campusesMatchingSearch: 'Campuses matching search',
-      campusesInProvince: 'Campuses in {province}',
-      campusesInRegion: 'Campuses in {region} region',
-      goalDetailNational: '{prayedFor} of {total} campuses prayed for nationally',
-      goalDetailInProvince: '{prayedFor} of {total} campuses prayed for in {province}',
-      goalDetailInRegion: '{prayedFor} of {total} campuses prayed for in {region} region',
-      goalDetailSearch: '{prayedFor} of {total} campuses prayed for matching search',
-      ariaLabel: 'Campus prayer statistics',
     },
     panel: {
-      province: 'Province',
-      region: 'Region',
       type: 'Type',
       students: 'Students',
       founded: 'Founded',
-      visitWebsite: 'Visit website',
-      notYetPrayedFor: 'Not yet prayed for',
-      prayedFor: 'Prayed for',
-      logPrayerWalk: 'Log Prayer Walk',
       markAsPrayed: 'Mark as prayed',
       prayedForButton: 'Prayed for',
-      prayerWalkLogged: '✓ Prayer Walk Logged',
-      closeAria: 'Close campus details',
     },
     explore: {
-      campusesLeftToPrayerWalk: 'Campuses left to prayer walk',
-      togetherTagline: 'Together we can make a difference',
-      totalCampuses: 'Total campuses',
-      prayedFor: 'Prayed for',
       notPrayed: 'Not prayed',
       prayed: 'Prayed',
       campusKeyTitle: 'Campus key',
@@ -201,18 +144,14 @@ export const translations: Record<Language, TranslationSchema> = {
       campusKeyPrayed: 'Prayed for',
       panelAria: 'Campus explorer',
       campusListAria: 'Campus list',
-      progressAria: 'Prayer walk progress',
       closeAria: 'Close campus explorer',
       allCampuses: 'All campuses',
       backAria: 'Back to campus list',
       website: 'Website',
       campusInfo: 'Campus info',
-      scrollForMore: 'Scroll for more',
       moreInfo: 'More info',
       prayerPromptPrayed:
         'This campus has been covered in prayer. Thank you for praying here.',
-      prayerHeading: 'Prayer',
-      joinOthersPraying: 'Join others in praying for this campus',
       studentsCount: '{count} students',
       prayerPrompts: {
         defaultPrompt:
@@ -315,9 +254,6 @@ export const translations: Record<Language, TranslationSchema> = {
       howItWorksText:
         'Explore the map to find campuses near you or across the country. Visit a campus, pray on site, and log your prayer walk. Each logged walk updates the map and contributes to our national prayer goal.',
     },
-    common: {
-      of: 'of',
-    },
     landing: {
       headline: 'Cover Every Campus in Thailand with Prayer',
       subheadline:
@@ -362,40 +298,15 @@ export const translations: Record<Language, TranslationSchema> = {
       searchPlaceholder: 'ค้นหามหาวิทยาลัย...',
       allRegions: 'ทุกภาค',
       allProvinces: 'ทุกจังหวัด',
-      filtersAria: 'ตัวกรองและสถิติ',
-    },
-    stats: {
-      prayedFor: 'อธิษฐานแล้ว',
-      totalCampuses: 'มหาวิทยาลัยทั้งหมด',
-      campusesMatchingSearch: 'มหาวิทยาลัยที่ตรงกับการค้นหา',
-      campusesInProvince: 'มหาวิทยาลัยใน{province}',
-      campusesInRegion: 'มหาวิทยาลัยใน{region}',
-      goalDetailNational: 'อธิษฐานแล้ว {prayedFor} จาก {total} มหาวิทยาลัยทั่วประเทศ',
-      goalDetailInProvince: 'อธิษฐานแล้ว {prayedFor} จาก {total} มหาวิทยาลัยใน{province}',
-      goalDetailInRegion: 'อธิษฐานแล้ว {prayedFor} จาก {total} มหาวิทยาลัยใน{region}',
-      goalDetailSearch: 'อธิษฐานแล้ว {prayedFor} จาก {total} มหาวิทยาลัยที่ตรงกับการค้นหา',
-      ariaLabel: 'สถิติการอธิษฐานมหาวิทยาลัย',
     },
     panel: {
-      province: 'จังหวัด',
-      region: 'ภาค',
       type: 'ประเภท',
       students: 'นักศึกษา',
       founded: 'ก่อตั้ง',
-      visitWebsite: 'เยี่ยมชมเว็บไซต์',
-      notYetPrayedFor: 'ยังไม่ได้อธิษฐาน',
-      prayedFor: 'อธิษฐานแล้ว',
-      logPrayerWalk: 'บันทึกการเดินอธิษฐาน',
       markAsPrayed: 'ทำเครื่องหมายว่าอธิษฐานแล้ว',
       prayedForButton: 'อธิษฐานแล้ว',
-      prayerWalkLogged: '✓ บันทึกการเดินอธิษฐานแล้ว',
-      closeAria: 'ปิดรายละเอียดมหาวิทยาลัย',
     },
     explore: {
-      campusesLeftToPrayerWalk: 'มหาวิทยาลัยที่ยังต้องเดินอธิษฐาน',
-      togetherTagline: 'เราร่วมกันสร้างความเปลี่ยนแปลงได้',
-      totalCampuses: 'มหาวิทยาลัยทั้งหมด',
-      prayedFor: 'อธิษฐานแล้ว',
       notPrayed: 'ยังไม่ได้อธิษฐาน',
       prayed: 'อธิษฐานแล้ว',
       campusKeyTitle: 'สัญลักษณ์มหาวิทยาลัย',
@@ -403,18 +314,14 @@ export const translations: Record<Language, TranslationSchema> = {
       campusKeyPrayed: 'อธิษฐานแล้ว',
       panelAria: 'สำรวจมหาวิทยาลัย',
       campusListAria: 'รายการมหาวิทยาลัย',
-      progressAria: 'ความคืบหน้าการเดินอธิษฐาน',
       closeAria: 'ปิดการสำรวจมหาวิทยาลัย',
       allCampuses: 'มหาวิทยาลัยทั้งหมด',
       backAria: 'กลับไปรายการมหาวิทยาลัย',
       website: 'เว็บไซต์',
       campusInfo: 'ข้อมูลมหาวิทยาลัย',
-      scrollForMore: 'เลื่อนเพื่อดูเพิ่มเติม',
       moreInfo: 'ข้อมูลเพิ่มเติม',
       prayerPromptPrayed:
         'มหาวิทยาลัยนี้ได้รับการอธิษฐานแล้ว ขอบคุณที่อธิษฐานที่นี่',
-      prayerHeading: 'อธิษฐาน',
-      joinOthersPraying: 'ร่วมอธิษฐานกับผู้อื่นเพื่อมหาวิทยาลัยนี้',
       studentsCount: 'นักศึกษา {count} คน',
       prayerPrompts: {
         defaultPrompt:
@@ -516,9 +423,6 @@ export const translations: Record<Language, TranslationSchema> = {
       howItWorksTitle: 'วิธีการใช้งาน',
       howItWorksText:
         'สำรวจแผนที่เพื่อค้นหามหาวิทยาลัยใกล้คุณหรือทั่วประเทศ เยี่ยมชมมหาวิทยาลัย อธิษฐานในสถานที่ และบันทึกการเดินอธิษฐานของคุณ การเดินอธิษฐานแต่ละครั้งจะอัปเดตแผนที่และมีส่วนร่วมต่อเป้าหมายการอธิษฐานระดับชาติ',
-    },
-    common: {
-      of: 'จาก',
     },
     landing: {
       headline: 'อธิษฐานเพื่อทุกมหาวิทยาลัยในประเทศไทย',

@@ -523,15 +523,6 @@ export function CampusMobileBottomSheet({
     isDragging ? 'mobile-sheet__drag-zone--grabbing' : '',
   ].filter(Boolean).join(' ');
 
-  const reportSheetTopCallback = useCallback(
-    (height: number) => {
-      onSheetTopChange(getViewportHeight() - height);
-      document.body.style.setProperty('--mobile-sheet-height', `${height}px`);
-    },
-    [onSheetTopChange],
-  );
-  void reportSheetTopCallback; // reportSheetTop is used directly above
-
   const sheet = (
     <>
       <div

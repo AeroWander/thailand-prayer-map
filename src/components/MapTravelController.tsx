@@ -12,8 +12,7 @@ import {
   hasReachedCampusNavigation,
   MAP_FLY_DURATION,
   navigateToCampus,
-  THAILAND_CENTER,
-  THAILAND_ZOOM,
+  resetMapToThailand,
 } from '../utils/mapBounds';
 
 type MapTravelControllerProps = {
@@ -96,7 +95,7 @@ export function MapTravelController({
       hasAnimated.current = true;
       hasNavigatedRef.current = true;
 
-      map.setView(THAILAND_CENTER, THAILAND_ZOOM, { animate: false, duration: 0 });
+      resetMapToThailand(map, false);
       map.invalidateSize({ animate: false });
 
       handleMoveEnd = () => {

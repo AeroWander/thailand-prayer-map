@@ -101,11 +101,3 @@ export function provinceToRegion(province: string): Region {
   return 'Central';
 }
 
-export const REGIONS: Region[] = [
-  'Bangkok',
-  'Central',
-  'Northern',
-  'Northeastern',
-  'Eastern',
-  'Southern',
-];

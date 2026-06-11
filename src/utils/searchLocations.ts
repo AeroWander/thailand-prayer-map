@@ -111,10 +111,3 @@ export function resolveSearchQuery(
   return null;
 }
 
-/** @deprecated Use searchLocationsGrouped */
-export function searchLocations(
-  campuses: Campus[],
-  query: string,
-): LocationSearchResult[] {
-  return searchLocationsGrouped(campuses, query).selectable;
-}

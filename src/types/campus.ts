@@ -28,5 +28,3 @@ export type Campus = {
   website: string;
   prayedFor: boolean;
 };
-
-export const NATIONAL_GOAL = 170;

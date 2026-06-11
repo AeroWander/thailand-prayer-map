@@ -7,10 +7,7 @@ type UniversitySearchProps = {
   campuses: Campus[];
   value: string;
   onChange: (query: string) => void;
-  /** Called for any result type — province, city, or campus. Preferred over onSelect. */
-  onSelectResult?: (result: LocationSearchResult) => void;
-  /** Legacy campus-only callback. Used when onSelectResult is not provided. */
-  onSelect?: (campus: Campus) => void;
+  onSelectResult: (result: LocationSearchResult) => void;
   variant?: 'inline' | 'floating';
   clearOnSelect?: boolean;
 };
@@ -40,7 +37,6 @@ export function UniversitySearch({
   value,
   onChange,
   onSelectResult,
-  onSelect,
   variant = 'inline',
   clearOnSelect = false,
 }: UniversitySearchProps) {
@@ -71,11 +67,7 @@ export function UniversitySearch({
       onChange(clearOnSelect ? '' : result.kind === 'city' ? result.city : getProvinceLabel(result.province));
     }
     closeDropdown();
-    if (onSelectResult) {
-      onSelectResult(result);
-    } else if (result.kind === 'campus' && onSelect) {
-      onSelect(result.campus);
-    }
+    onSelectResult(result);
     inputRef.current?.blur();
   };
 

@@ -12,7 +12,7 @@ const ESRI_ATTRIBUTION =
 type CampusMiniMapProps = {
   campus: Campus;
   isPanelOpen: boolean;
-  variant?: 'default' | 'explore' | 'detail';
+  variant?: 'default' | 'detail';
 };
 
 function CampusMiniMapCenterController({ campus }: { campus: Campus }) {
@@ -56,9 +56,7 @@ export function CampusMiniMap({
   const className =
     variant === 'detail'
       ? 'mini-map campus-panel__mini-map campus-panel__mini-map--detail'
-      : variant === 'explore'
-        ? 'campus-panel__mini-map campus-panel__mini-map--explore'
-        : 'campus-panel__mini-map';
+      : 'campus-panel__mini-map';
 
   return (
     <div className={className} aria-hidden="true">
