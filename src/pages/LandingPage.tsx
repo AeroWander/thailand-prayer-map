@@ -6,8 +6,7 @@ import { useCampuses } from '../context/CampusContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import { interpolate } from '../i18n/translations';
 
-const DURATION = 620;
-const PHASE1 = 0.82;
+const DURATION = 1400;
 const DELAY = 120;
 
 function easeOutQuart(t: number): number {
@@ -15,9 +14,9 @@ function easeOutQuart(t: number): number {
 }
 
 /**
- * Animates an integer from ~80% of its value up to target with a slight
- * one-number overshoot. Waits until isLoading is false so all three stats
- * animate against their correct final values. Plays once per mount.
+ * Animates an integer from ~80% of its value up to target.
+ * Waits until isLoading is false so all three stats animate against
+ * their correct final values. Plays once per mount.
  */
 function useCountUp(target: number, isLoading: boolean): number {
   const [value, setValue] = useState(0);
@@ -45,17 +44,8 @@ function useCountUp(target: number, isLoading: boolean): number {
         return;
       }
 
-      const progress = elapsed / DURATION;
-      let current: number;
-
-      if (progress < PHASE1) {
-        const t = progress / PHASE1;
-        current = start + (target + 1 - start) * easeOutQuart(t);
-      } else {
-        const t = (progress - PHASE1) / (1 - PHASE1);
-        current = (target + 1) - t * t;
-      }
-
+      const t = elapsed / DURATION;
+      const current = start + (target - start) * easeOutQuart(t);
       setValue(Math.round(current));
       rafId = requestAnimationFrame(step);
     }
