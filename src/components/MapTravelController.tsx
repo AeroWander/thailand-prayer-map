@@ -4,8 +4,11 @@ import L from 'leaflet';
 import { useMapNavigationGuard } from '../context/MapNavigationGuard';
 import type { Campus } from '../types/campus';
 import type { MapNavigationState } from '../types/mapTravel';
+import { loadProvinceBoundaries } from '../data/provinceBoundaries';
+import { geoJsonProvinceToApp } from '../utils/provinceGeoNames';
 import {
   fitMapToCampuses,
+  getFilterFitBoundsPadding,
   hasReachedCampusNavigation,
   MAP_FLY_DURATION,
   navigateToCampus,
@@ -13,22 +16,36 @@ import {
   THAILAND_ZOOM,
 } from '../utils/mapBounds';
 
-const ARRIVAL_DISTANCE_METERS = 2500;
-
 type MapTravelControllerProps = {
   travel: MapNavigationState;
   campuses: Campus[];
   onComplete: () => void;
 };
 
+/** After fitBounds the target point should be within the visible area. */
 function hasReachedProvinceNavigation(
   map: L.Map,
   targetLatLng: L.LatLng,
 ): boolean {
-  const center = map.getCenter();
-  const distance = center.distanceTo(targetLatLng);
+  return map.getBounds().contains(targetLatLng);
+}
 
-  return distance <= ARRIVAL_DISTANCE_METERS && map.getBounds().contains(targetLatLng);
+/**
+ * Load the GeoJSON boundary for `province` and return its LatLngBounds.
+ * Returns null if the boundary is not found or loading fails.
+ */
+async function getProvinceBounds(province: string): Promise<L.LatLngBounds | null> {
+  try {
+    const data = await loadProvinceBoundaries();
+    const feature = data.features.find(
+      (f) => geoJsonProvinceToApp(f.properties.name) === province,
+    );
+    if (!feature) return null;
+    const bounds = L.geoJSON(feature).getBounds();
+    return bounds.isValid() ? bounds : null;
+  } catch {
+    return null;
+  }
 }
 
 export function MapTravelController({
@@ -88,7 +105,7 @@ export function MapTravelController({
         }
 
         const reached =
-          travel.type === 'campus' || travel.type === 'city'
+          travel.type === 'campus'
             ? hasReachedCampusNavigation(map, targetLatLng)
             : hasReachedProvinceNavigation(map, targetLatLng);
 
@@ -101,7 +118,7 @@ export function MapTravelController({
 
       map.on('moveend', handleMoveEnd);
 
-      layoutTimer = window.setTimeout(() => {
+      layoutTimer = window.setTimeout(async () => {
         if (cancelled) {
           return;
         }
@@ -113,13 +130,24 @@ export function MapTravelController({
           return;
         }
 
-        // City arrivals zoom to the city's own coordinates for precision.
-        if (travel.type === 'city') {
-          navigateToCampus(map, { lat: travel.lat, lng: travel.lng });
+        // Province and city: fit the map to the actual province boundary polygon so
+        // the whole region is visible with comfortable padding. Fall back to campus
+        // pin fitting (or a point zoom) if the boundary isn't available.
+        const bounds = await getProvinceBounds(travel.province);
+        if (cancelled) return;
+
+        if (bounds) {
+          const { paddingTopLeft, paddingBottomRight } = getFilterFitBoundsPadding();
+          map.fitBounds(bounds, {
+            paddingTopLeft,
+            paddingBottomRight,
+            animate: true,
+            duration: MAP_FLY_DURATION,
+          });
           return;
         }
 
-        // Province arrivals fit the map to all campuses in the province.
+        // Fallback: fit to campus pins in the province.
         if (provinceCampuses.length > 0) {
           fitMapToCampuses(map, provinceCampuses);
           return;
