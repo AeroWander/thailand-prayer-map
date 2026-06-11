@@ -2287,7 +2287,7 @@ html.lang-th .hero-headline {
   flex: 1 1 0;
   padding: 14px 16px;
   text-align: center;
-  border-radius: 12px;
+  border-radius: var(--radius-pill);
   font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 600;
