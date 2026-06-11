@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Marker } from 'react-leaflet';
+import { Marker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import type { LeafletMouseEvent } from 'leaflet';
 import type { Campus } from '../types/campus';
+import { useLanguage } from '../i18n/LanguageContext';
 import { getDotSize } from '../utils/campusDotSize';
 import { createCampusDotIcon } from '../utils/campusPinIcon';
+
+// Tooltips are hover-only — skip on touch devices entirely
+const HAS_HOVER =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 type CampusMapMarkerProps = {
   campus: Campus;
@@ -41,6 +47,7 @@ export function CampusMapMarker({
   onMarkerClick,
 }: CampusMapMarkerProps) {
   const markerRef = useRef<L.Marker>(null);
+  const { getCampusPrimaryName } = useLanguage();
   const zoomSizeRef = useRef(getDotSize(mapZoom, false));
 
   const icon = useMemo(() => {
@@ -84,6 +91,18 @@ export function CampusMapMarker({
         },
         click: (event) => onMarkerClick(campus, event),
       }}
-    />
+    >
+      {HAS_HOVER && (
+        <Tooltip
+          direction="top"
+          offset={[0, -6]}
+          className="campus-tooltip"
+          permanent={false}
+          sticky={false}
+        >
+          {getCampusPrimaryName(campus)}
+        </Tooltip>
+      )}
+    </Marker>
   );
 }
