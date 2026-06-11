@@ -2703,8 +2703,21 @@ html.lang-th .hero-headline {
   }
 
   .landing-stats {
-    grid-template-columns: 1fr;
-    max-width: 20rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 100%;
+    gap: 0.5rem;
+  }
+
+  .landing-stat {
+    padding: 12px 10px;
+  }
+
+  .landing-stat__value {
+    font-size: 1.625rem;
+  }
+
+  .landing-stat__label {
+    font-size: 0.6875rem;
   }
 
   .landing-vision__grid {
