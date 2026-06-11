@@ -18,6 +18,8 @@ type MapViewProps = {
   campuses: Campus[];
   selectedRegion: string;
   selectedProvince: string;
+  /** Province to outline from a search-box arrival. Does not filter pins. */
+  highlightedProvince?: string | null;
   selectedCampusId: string | null;
   onSelectCampus: (campus: Campus) => void;
   travelTarget?: MapNavigationState | null;
@@ -29,6 +31,7 @@ export function MapView({
   campuses,
   selectedRegion,
   selectedProvince,
+  highlightedProvince = null,
   selectedCampusId,
   onSelectCampus,
   travelTarget = null,
@@ -81,7 +84,7 @@ export function MapView({
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         <ProvinceBoundariesLayer
-          selectedProvince={selectedProvince}
+          selectedProvince={highlightedProvince ?? selectedProvince}
           selectedRegion={selectedRegion}
         />
         {campuses.map((campus) => (

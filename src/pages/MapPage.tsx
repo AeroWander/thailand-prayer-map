@@ -46,6 +46,7 @@ function applyArrivalUi(
     setSelectedProvince: (province: string) => void;
     setSelectedRegion: (region: string) => void;
     setIsPanelArrival: (arrival: boolean) => void;
+    setHighlightedProvince: (province: string | null) => void;
   },
   isMobile: boolean,
 ) {
@@ -63,8 +64,11 @@ function applyArrivalUi(
     return;
   }
 
-  setters.setSelectedProvince(target.province);
+  // Province/city arrival: highlight the boundary but do NOT filter pins —
+  // all campuses across Thailand remain visible on the map.
+  setters.setSelectedProvince('All');
   setters.setSelectedRegion('All');
+  setters.setHighlightedProvince(target.province);
   setters.setPanelView('list');
   setters.setSelectedCampusId(null);
   setters.setListScrollCampusId(null);
@@ -81,10 +85,13 @@ function MapPageContent() {
   const [searchOpacity, setSearchOpacity] = useState(1);
   const initialTravel = isMapNavigationState(location.state) ? location.state : null;
 
-  const [selectedProvince, setSelectedProvince] = useState(() =>
-    initialTravel?.type === 'province' ? initialTravel.province : 'All',
-  );
+  const [selectedProvince, setSelectedProvince] = useState('All');
   const [selectedRegion, setSelectedRegion] = useState('All');
+  // Tracks the province to outline on the map after a search-box navigation.
+  // Unlike selectedProvince this does NOT filter campus pins — all pins stay visible.
+  const [highlightedProvince, setHighlightedProvince] = useState<string | null>(() =>
+    initialTravel?.type === 'province' ? initialTravel.province : null,
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [travelTarget, setTravelTarget] = useState<MapNavigationState | null>(initialTravel);
   const [isPanelArrival, setIsPanelArrival] = useState(Boolean(initialTravel));
@@ -141,6 +148,7 @@ function MapPageContent() {
         setSelectedProvince,
         setSelectedRegion,
         setIsPanelArrival,
+        setHighlightedProvince,
       },
       isMobile,
     );
@@ -215,6 +223,18 @@ function MapPageContent() {
     setSelectedCampusId(null);
   }, []);
 
+  // Panel filter callbacks — clear the search-arrival boundary highlight so the
+  // panel filter's own province/region takes visual control.
+  const handleProvinceChange = useCallback((province: string) => {
+    setSelectedProvince(province);
+    setHighlightedProvince(null);
+  }, []);
+
+  const handleRegionChange = useCallback((region: string) => {
+    setSelectedRegion(region);
+    setHighlightedProvince(null);
+  }, []);
+
   const closeExplore = useCallback(() => {
     clearUserInteracting();
     setIsExploreOpen(false);
@@ -285,6 +305,7 @@ function MapPageContent() {
             campuses={visibleCampuses}
             selectedRegion={selectedRegion}
             selectedProvince={selectedProvince}
+            highlightedProvince={highlightedProvince}
             selectedCampusId={selectedCampusId}
             onSelectCampus={selectCampus}
             travelTarget={travelTarget}
@@ -331,8 +352,8 @@ function MapPageContent() {
             selectedRegion={selectedRegion}
             selectedProvince={selectedProvince}
             animateEntry={isPanelArrival}
-            onRegionChange={setSelectedRegion}
-            onProvinceChange={setSelectedProvince}
+            onRegionChange={handleRegionChange}
+            onProvinceChange={handleProvinceChange}
             onSelectCampus={selectCampus}
             onBackToList={showAllCampuses}
             onClose={closeExplore}
