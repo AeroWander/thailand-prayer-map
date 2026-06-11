@@ -311,7 +311,6 @@ export function CampusMobileBottomSheet({
       const result = resolveSnapWithVelocity(
         sheetHeightRef.current,
         velocity,
-        snapPointRef.current,
         getSnapHeights(),
         DISMISS_THRESHOLD,
         vh,

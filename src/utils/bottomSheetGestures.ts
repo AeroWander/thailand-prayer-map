@@ -31,7 +31,6 @@ export function nearestSnap(
 export function resolveSnapWithVelocity(
   height: number,
   velocity: number,
-  currentSnap: SnapPoint,
   heights: SnapHeights,
   dismissThreshold: number,
   viewportHeight: number,
