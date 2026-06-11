@@ -7,6 +7,7 @@ import type { Campus } from '../types/campus';
 import {
   createScrollGestureState,
   decideScrollGestureMode,
+  dismissTransitionForVelocity,
   isAtFullExpansion,
   isScrollAtTop,
   resolveSnapWithVelocity,
@@ -310,6 +311,20 @@ export function CampusMobileBottomSheet({
   }, [snapTo]);
 
   // ── Drag mechanics ────────────────────────────────────────────────────────
+
+  // Animate the sheet off-screen before calling onDismiss so the exit feels
+  // weighted and momentum-driven instead of a sudden disappearance.
+  const dismissWithAnimation = useCallback(
+    (velocity: number) => {
+      const { transition, duration } = dismissTransitionForVelocity(velocity);
+      applyTransition(transition);
+      setSheetHeight(0);
+      reportSheetTop(0);
+      window.setTimeout(onDismiss, duration + 20);
+    },
+    [applyTransition, onDismiss, reportSheetTop],
+  );
+
   const finishSheetGesture = useCallback(
     (velocity: number, options?: { allowTitleTap?: boolean }) => {
       if (!isDraggingRef.current) return;
@@ -342,13 +357,13 @@ export function CampusMobileBottomSheet({
       );
 
       if (result === 'dismiss') {
-        onDismiss();
+        dismissWithAnimation(velocity);
         return;
       }
 
       snapTo(result, velocity);
     },
-    [getSnapHeights, handleTitleTap, onDismiss, setSheetDragging, snapTo],
+    [dismissWithAnimation, getSnapHeights, handleTitleTap, setSheetDragging, snapTo],
   );
 
   const beginSheetDrag = useCallback(

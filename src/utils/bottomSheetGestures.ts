@@ -64,6 +64,21 @@ export function springTransitionForVelocity(velocity: number): string {
   return `height ${duration}s cubic-bezier(0.32, 0.72, 0, 1)`;
 }
 
+/**
+ * Return a momentum+gravity easing for sheet dismissal.
+ * The sheet exits at finger velocity then accelerates off-screen like gravity taking over.
+ * Returns { transition, duration } so the caller can delay onDismiss until animation ends.
+ */
+export function dismissTransitionForVelocity(velocity: number): { transition: string; duration: number } {
+  const absV = Math.abs(velocity); // px/ms
+  // Faster flick → shorter duration, but never below 200ms (needs to feel physical)
+  const duration = absV > 1.5 ? 220 : absV > 0.7 ? 290 : 360;
+  // cubic-bezier(0.4, 0, 1, 0.85): starts at good speed matching finger velocity,
+  // accelerates through the middle (gravity), subtle ease at the very end as it exits.
+  const transition = `height ${duration}ms cubic-bezier(0.4, 0, 1, 0.85)`;
+  return { transition, duration };
+}
+
 export function isAtFullExpansion(height: number, maxHeight: number): boolean {
   return height >= maxHeight - SCROLL_TOP_EPSILON;
 }
