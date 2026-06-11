@@ -2283,9 +2283,9 @@ html.lang-th .hero-headline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 10rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-pill);
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 12px;
   font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 600;
@@ -2307,13 +2307,13 @@ html.lang-th .hero-headline {
 }
 
 .landing-cta__secondary {
-  border: 1.5px solid #1b5ea6;
+  border: 1.5px solid rgba(27, 94, 166, 0.6);
   background: transparent;
-  color: #1b5ea6;
+  color: rgba(27, 94, 166, 0.6);
 }
 
 .landing-cta__secondary:hover {
-  background: #f5f8fc;
+  background: rgba(27, 94, 166, 0.05);
 }
 
 .landing-cta__note {
@@ -2739,9 +2739,7 @@ html.lang-th .hero-headline {
 
   .landing-cta__primary,
   .landing-cta__secondary {
-    flex: 1;
     min-width: 0;
-    padding: 0.75rem 1rem;
     font-size: 0.875rem;
   }
 }
