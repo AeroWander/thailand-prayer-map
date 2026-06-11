@@ -156,7 +156,7 @@ export function CampusMobileBottomSheet({
   const dragVelocityRef = useRef(0);
   const dragLastMoveRef = useRef({ y: 0, time: 0 });
   const scrollGestureRef = useRef<ScrollGestureState | null>(null);
-  const transitionRef = useRef('none');
+  const dismissTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
   sheetHeightRef.current = sheetHeight;
   collapsedHeightRef.current = collapsedHeight;
@@ -237,7 +237,6 @@ export function CampusMobileBottomSheet({
   );
 
   const applyTransition = useCallback((transition: string) => {
-    transitionRef.current = transition;
     if (sheetRef.current) {
       sheetRef.current.style.transition = transition;
     }
@@ -291,6 +290,9 @@ export function CampusMobileBottomSheet({
         isDraggingRef.current = false;
         setSheetDragging(false);
       }
+      if (dismissTimerRef.current !== null) {
+        window.clearTimeout(dismissTimerRef.current);
+      }
     };
   }, [setSheetDragging]);
 
@@ -320,7 +322,7 @@ export function CampusMobileBottomSheet({
       applyTransition(transition);
       setSheetHeight(0);
       reportSheetTop(0);
-      window.setTimeout(onDismiss, duration + 20);
+      dismissTimerRef.current = window.setTimeout(onDismiss, duration + 20);
     },
     [applyTransition, onDismiss, reportSheetTop],
   );

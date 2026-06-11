@@ -161,7 +161,7 @@ function MapPageContent() {
     );
     setTravelTarget(location.state);
     navigate('/map', { replace: true, state: null });
-  }, [location.state, navigate, campuses]);
+  }, [location.state, navigate, campuses, isMobile]);
 
   const handleLogPrayerWalk = useCallback(
     (campusId: string) => {
@@ -182,19 +182,17 @@ function MapPageContent() {
     });
   }, [campuses, selectedProvince, selectedRegion]);
 
-  const visibleCampuses = regionProvinceFiltered;
-
   const selectedCampus = useMemo(() => {
     if (!selectedCampusId) {
       return null;
     }
 
     return (
-      visibleCampuses.find((campus) => campus.id === selectedCampusId) ??
+      regionProvinceFiltered.find((campus) => campus.id === selectedCampusId) ??
       campuses.find((campus) => campus.id === selectedCampusId) ??
       null
     );
-  }, [selectedCampusId, visibleCampuses, campuses]);
+  }, [selectedCampusId, regionProvinceFiltered, campuses]);
 
   useEffect(() => {
     if (
@@ -312,7 +310,7 @@ function MapPageContent() {
   );
 
   return (
-    <div className="app__content app__content--explore page-enter">
+    <div className="app__content app__content--explore">
       <div
         className={
           isMobile
@@ -326,7 +324,7 @@ function MapPageContent() {
       >
         <div className="map-layout__map">
           <MapView
-            campuses={visibleCampuses}
+            campuses={regionProvinceFiltered}
             selectedRegion={selectedRegion}
             selectedProvince={selectedProvince}
             highlightedProvince={highlightedProvince}
@@ -369,7 +367,7 @@ function MapPageContent() {
           <CampusExplorePanel
             isMobile={isMobile}
             allCampuses={campuses}
-            visibleCampuses={visibleCampuses}
+            visibleCampuses={regionProvinceFiltered}
             view={panelView}
             selectedCampus={selectedCampus}
             listScrollCampusId={listScrollCampusId}
