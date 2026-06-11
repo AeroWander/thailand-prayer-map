@@ -16,24 +16,19 @@ function easeOutQuart(t: number): number {
 
 /**
  * Animates an integer from ~80% of its value up to target with a slight
- * one-number overshoot. Waits for target to be non-zero (prayedCount is
- * loaded async from Supabase), then plays once. Always lands on the exact
- * target value on completion or interruption.
+ * one-number overshoot. Waits until isLoading is false so all three stats
+ * animate against their correct final values. Plays once per mount.
  */
-function useCountUp(target: number): number {
-  // Initialise to 80% of whatever we know at render time (0 for async values).
-  const [value, setValue] = useState(() => Math.floor(target * 0.8));
+function useCountUp(target: number, isLoading: boolean): number {
+  const [value, setValue] = useState(0);
   const startedRef = useRef(false);
 
   useEffect(() => {
-    // prayedCount / remainingCount arrive asynchronously — wait for real data.
-    if (target === 0) return;
-    // Only animate once even if target updates later.
+    if (isLoading) return;
     if (startedRef.current) return;
     startedRef.current = true;
 
     const start = Math.floor(target * 0.8);
-    // Sync the displayed value to the computed start in case useState captured 0.
     setValue(start);
 
     const launchTime = performance.now() + DELAY;
@@ -72,7 +67,7 @@ function useCountUp(target: number): number {
       cancelAnimationFrame(rafId);
       setValue(target);
     };
-  }, [target]); // re-check whenever target changes (Supabase load)
+  }, [isLoading, target]);
 
   return value;
 }
@@ -110,11 +105,11 @@ function VisionIcon({ children }: { children: React.ReactNode }) {
 
 export function LandingPage() {
   const { t, formatNumber } = useLanguage();
-  const { totalCampuses, prayedCount, remainingCount } = useCampuses();
+  const { totalCampuses, prayedCount, remainingCount, isLoadingPrayerWalks } = useCampuses();
 
-  const animatedTotal = useCountUp(totalCampuses);
-  const animatedPrayed = useCountUp(prayedCount);
-  const animatedRemaining = useCountUp(remainingCount);
+  const animatedTotal = useCountUp(totalCampuses, isLoadingPrayerWalks);
+  const animatedPrayed = useCountUp(prayedCount, isLoadingPrayerWalks);
+  const animatedRemaining = useCountUp(remainingCount, isLoadingPrayerWalks);
   const pageRef = useRef<HTMLDivElement>(null);
   const [showScrollHint, setShowScrollHint] = useState(true);
 
