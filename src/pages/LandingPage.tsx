@@ -16,18 +16,26 @@ function easeOutQuart(t: number): number {
 
 /**
  * Animates an integer from ~80% of its value up to target with a slight
- * one-number overshoot. Plays once per component mount. Always snaps to
- * the exact target value on completion or interruption.
+ * one-number overshoot. Waits for target to be non-zero (prayedCount is
+ * loaded async from Supabase), then plays once. Always lands on the exact
+ * target value on completion or interruption.
  */
 function useCountUp(target: number): number {
+  // Initialise to 80% of whatever we know at render time (0 for async values).
   const [value, setValue] = useState(() => Math.floor(target * 0.8));
   const startedRef = useRef(false);
 
   useEffect(() => {
+    // prayedCount / remainingCount arrive asynchronously — wait for real data.
+    if (target === 0) return;
+    // Only animate once even if target updates later.
     if (startedRef.current) return;
     startedRef.current = true;
 
     const start = Math.floor(target * 0.8);
+    // Sync the displayed value to the computed start in case useState captured 0.
+    setValue(start);
+
     const launchTime = performance.now() + DELAY;
     let rafId: number;
     let active = true;
@@ -62,12 +70,9 @@ function useCountUp(target: number): number {
     return () => {
       active = false;
       cancelAnimationFrame(rafId);
-      // Always land on the correct value if animation is interrupted
       setValue(target);
     };
-  // Run once on mount; target is stable (static data)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [target]); // re-check whenever target changes (Supabase load)
 
   return value;
 }
