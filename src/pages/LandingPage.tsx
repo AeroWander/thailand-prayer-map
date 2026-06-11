@@ -6,32 +6,35 @@ import { useCampuses } from '../context/CampusContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import { interpolate } from '../i18n/translations';
 
-const DURATION = 620;   // total animation time in ms
-const PHASE1 = 0.82;    // fraction spent counting up (rest is the settle)
-const DELAY = 120;      // ms before animation starts after mount
+const DURATION = 620;
+const PHASE1 = 0.82;
+const DELAY = 120;
 
 function easeOutQuart(t: number): number {
   return 1 - Math.pow(1 - t, 4);
 }
 
 /**
- * Animates an integer from ~80% of its value up to target,
- * briefly overshooting by 1 then settling back.
- * Plays once per component mount.
+ * Animates an integer from ~80% of its value up to target with a slight
+ * one-number overshoot. Plays once per component mount. Always snaps to
+ * the exact target value on completion or interruption.
  */
 function useCountUp(target: number): number {
-  const start = Math.floor(target * 0.8);
-  const [value, setValue] = useState(start);
-  const doneRef = useRef(false);
+  const [value, setValue] = useState(() => Math.floor(target * 0.8));
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (doneRef.current || target === 0) return;
-    doneRef.current = true;
+    if (startedRef.current) return;
+    startedRef.current = true;
 
+    const start = Math.floor(target * 0.8);
     const launchTime = performance.now() + DELAY;
     let rafId: number;
+    let active = true;
 
     function step(now: number) {
+      if (!active) return;
+
       const elapsed = Math.max(0, now - launchTime);
 
       if (elapsed >= DURATION) {
@@ -43,13 +46,11 @@ function useCountUp(target: number): number {
       let current: number;
 
       if (progress < PHASE1) {
-        // Count from start up past target (to target + 1)
         const t = progress / PHASE1;
         current = start + (target + 1 - start) * easeOutQuart(t);
       } else {
-        // Settle from target + 1 back to target
         const t = (progress - PHASE1) / (1 - PHASE1);
-        current = (target + 1) - t * t; // easeInQuad descent of 1 unit
+        current = (target + 1) - t * t;
       }
 
       setValue(Math.round(current));
@@ -57,9 +58,16 @@ function useCountUp(target: number): number {
     }
 
     rafId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafId);
+
+    return () => {
+      active = false;
+      cancelAnimationFrame(rafId);
+      // Always land on the correct value if animation is interrupted
+      setValue(target);
+    };
+  // Run once on mount; target is stable (static data)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target]);
+  }, []);
 
   return value;
 }
