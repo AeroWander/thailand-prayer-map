@@ -2287,6 +2287,7 @@ html.lang-th .hero-headline {
   flex: 1 1 0;
   padding: 14px 16px;
   text-align: center;
+  white-space: nowrap;
   border-radius: var(--radius-pill);
   font-family: inherit;
   font-size: 0.9375rem;
@@ -2742,7 +2743,8 @@ html.lang-th .hero-headline {
   .landing-cta__primary,
   .landing-cta__secondary {
     min-width: 0;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
+    padding: 12px 14px;
   }
 }
 
