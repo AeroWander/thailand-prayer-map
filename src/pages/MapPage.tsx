@@ -50,8 +50,9 @@ function applyArrivalUi(
   isMobile: boolean,
 ) {
   setters.setIsPanelArrival(true);
-  // On mobile a campus arrival goes straight to the bottom sheet — no explore panel
-  const openExplore = !(isMobile && target.type === 'campus');
+  // On mobile never open the explore panel — campus goes to the bottom sheet,
+  // province/city arrivals just zoom the map with the boundary highlighted.
+  const openExplore = !isMobile;
   setters.setIsExploreOpen(openExplore);
 
   if (target.type === 'campus') {
@@ -91,8 +92,9 @@ function MapPageContent() {
     if (initialTravel) {
       const onMobile =
         typeof window !== 'undefined' && window.matchMedia(MOBILE_MEDIA_QUERY).matches;
-      // Mobile campus arrivals skip the explore panel and go straight to the bottom sheet
-      if (onMobile && initialTravel.type === 'campus') {
+      // On mobile never open the explore panel on arrival — campus uses the bottom
+      // sheet, province/city arrivals just zoom the map with the boundary shown.
+      if (onMobile) {
         return false;
       }
       return true;
