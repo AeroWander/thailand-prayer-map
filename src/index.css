@@ -1478,6 +1478,29 @@ html.lang-th {
   background: var(--color-campus-prayed);
 }
 
+/* Name-only pill at regional zoom (8–10) */
+.leaflet-tooltip.campus-tooltip--pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-white);
+  max-width: 200px;
+  width: auto;
+  box-shadow:
+    0 1px 6px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.campus-tooltip-pill {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Hide Leaflet's default directional arrow */
 .leaflet-tooltip.campus-tooltip::before {
   display: none;

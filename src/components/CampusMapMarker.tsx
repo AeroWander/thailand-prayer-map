@@ -6,6 +6,7 @@ import type { Campus } from '../types/campus';
 import { CampusPinTooltip } from './CampusPinTooltip';
 import { getDotSize } from '../utils/campusDotSize';
 import { createCampusDotIcon } from '../utils/campusPinIcon';
+import { getPinTooltipTier } from '../utils/pinTooltipTier';
 
 // Tooltips are hover-only — skip on touch devices entirely
 const HAS_HOVER =
@@ -74,6 +75,10 @@ export function CampusMapMarker({
     });
   }, [campus.prayedFor, mapZoom, isSelected]);
 
+  const tooltipTier = getPinTooltipTier(mapZoom, isSelected);
+  const tooltipClassName =
+    tooltipTier === 'pill' ? 'campus-tooltip campus-tooltip--pill' : 'campus-tooltip';
+
   return (
     <Marker
       ref={markerRef}
@@ -91,15 +96,15 @@ export function CampusMapMarker({
         click: (event) => onMarkerClick(campus, event),
       }}
     >
-      {HAS_HOVER && (
+      {HAS_HOVER && tooltipTier !== 'none' && (
         <Tooltip
           direction="top"
-          offset={[0, -10]}
-          className="campus-tooltip"
-          permanent={false}
+          offset={[0, tooltipTier === 'pill' ? -6 : -10]}
+          className={tooltipClassName}
+          permanent={isSelected}
           sticky={false}
         >
-          <CampusPinTooltip campus={campus} />
+          <CampusPinTooltip campus={campus} tier={tooltipTier} />
         </Tooltip>
       )}
     </Marker>
