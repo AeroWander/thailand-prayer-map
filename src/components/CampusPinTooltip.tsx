@@ -23,10 +23,12 @@ export function CampusPinTooltip({ campus, tier }: CampusPinTooltipProps) {
     <div className="campus-tooltip-card">
       <div className="campus-tooltip-card__body">
         <p className="campus-tooltip-card__title">{name}</p>
-        <p className="campus-tooltip-card__stat">{prayerStatus}</p>
-        <p className="campus-tooltip-card__stat">{studentsLine}</p>
+        <ul className="campus-tooltip-card__stats">
+          <li>{prayerStatus}</li>
+          <li>{studentsLine}</li>
+        </ul>
       </div>
-      <div
+      <p
         className={
           campus.prayedFor
             ? 'campus-tooltip-card__hint campus-tooltip-card__hint--prayed'
@@ -34,7 +36,7 @@ export function CampusPinTooltip({ campus, tier }: CampusPinTooltipProps) {
         }
       >
         {hintText}
-      </div>
+      </p>
     </div>
   );
 }

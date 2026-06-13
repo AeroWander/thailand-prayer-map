@@ -10,9 +10,9 @@ export function getPinTooltipTier(mapZoom: number, isSelected: boolean): PinTool
     return 'none';
   }
 
-  if (mapZoom <= 8) {
-    return 'pill';
+  if (mapZoom >= 9) {
+    return 'full';
   }
 
-  return 'full';
+  return 'pill';
 }
