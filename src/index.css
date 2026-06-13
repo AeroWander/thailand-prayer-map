@@ -1413,21 +1413,62 @@ html.lang-th {
 
 /* ── Campus pin tooltip ─────────────────────────────────────────── */
 .leaflet-tooltip.campus-tooltip {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: #374151;
-  background: #ffffff;
+  padding: 0;
+  border-radius: 8px;
+  background: transparent;
   border: none;
   box-shadow:
-    0 1px 6px rgba(0, 0, 0, 0.10),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
-  white-space: nowrap;
-  /* 150 ms delay then fade in */
+    0 4px 16px rgba(13, 43, 78, 0.14),
+    0 1px 4px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
   animation: campus-tooltip-in 0.18s ease 0.15s both;
   pointer-events: none;
+}
+
+.campus-tooltip-card {
+  min-width: 168px;
+  max-width: 220px;
+}
+
+.campus-tooltip-card__body {
+  padding: 10px 12px 8px;
+  background: var(--color-white);
+}
+
+.campus-tooltip-card__title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text-primary);
+}
+
+.campus-tooltip-card__stat {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.campus-tooltip-card__stat + .campus-tooltip-card__stat {
+  margin-top: 1px;
+}
+
+.campus-tooltip-card__hint {
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--color-white);
+}
+
+.campus-tooltip-card__hint--pending {
+  background: var(--color-text-primary);
+}
+
+.campus-tooltip-card__hint--prayed {
+  background: var(--color-campus-prayed);
 }
 
 /* Hide Leaflet's default directional arrow */

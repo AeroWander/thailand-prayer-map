@@ -50,6 +50,8 @@ export type TranslationSchema = {
     website: string;
     campusInfo: string;
     moreInfo: string;
+    pinHintBeFirst: string;
+    pinHintThankYou: string;
     prayerPromptPrayed: string;
     studentsCount: string;
     prayerPrompts: {
@@ -150,6 +152,8 @@ export const translations: Record<Language, TranslationSchema> = {
       website: 'Website',
       campusInfo: 'Campus info',
       moreInfo: 'More info',
+      pinHintBeFirst: 'Be the first to pray here!',
+      pinHintThankYou: 'Covered in prayer — thank you!',
       prayerPromptPrayed:
         'This campus has been covered in prayer. Thank you for praying here.',
       studentsCount: '{count} students',
@@ -320,6 +324,8 @@ export const translations: Record<Language, TranslationSchema> = {
       website: 'เว็บไซต์',
       campusInfo: 'ข้อมูลมหาวิทยาลัย',
       moreInfo: 'ข้อมูลเพิ่มเติม',
+      pinHintBeFirst: 'มาอธิษฐานเป็นคนแรกที่นี่!',
+      pinHintThankYou: 'ได้รับการอธิษฐานแล้ว — ขอบคุณ!',
       prayerPromptPrayed:
         'มหาวิทยาลัยนี้ได้รับการอธิษฐานแล้ว ขอบคุณที่อธิษฐานที่นี่',
       studentsCount: 'นักศึกษา {count} คน',

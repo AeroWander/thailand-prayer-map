@@ -3,7 +3,7 @@ import { Marker, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import type { LeafletMouseEvent } from 'leaflet';
 import type { Campus } from '../types/campus';
-import { useLanguage } from '../i18n/LanguageContext';
+import { CampusPinTooltip } from './CampusPinTooltip';
 import { getDotSize } from '../utils/campusDotSize';
 import { createCampusDotIcon } from '../utils/campusPinIcon';
 
@@ -47,7 +47,6 @@ export function CampusMapMarker({
   onMarkerClick,
 }: CampusMapMarkerProps) {
   const markerRef = useRef<L.Marker>(null);
-  const { getCampusPrimaryName } = useLanguage();
   const zoomSizeRef = useRef(getDotSize(mapZoom, false));
 
   const icon = useMemo(() => {
@@ -95,12 +94,12 @@ export function CampusMapMarker({
       {HAS_HOVER && (
         <Tooltip
           direction="top"
-          offset={[0, -6]}
+          offset={[0, -10]}
           className="campus-tooltip"
           permanent={false}
           sticky={false}
         >
-          {getCampusPrimaryName(campus)}
+          <CampusPinTooltip campus={campus} />
         </Tooltip>
       )}
     </Marker>
