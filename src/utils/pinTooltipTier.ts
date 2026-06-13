@@ -6,11 +6,11 @@ export function getPinTooltipTier(mapZoom: number, isSelected: boolean): PinTool
     return 'full';
   }
 
-  if (mapZoom <= 8) {
+  if (mapZoom <= 6) {
     return 'none';
   }
 
-  if (mapZoom <= 11) {
+  if (mapZoom <= 9) {
     return 'pill';
   }
 
