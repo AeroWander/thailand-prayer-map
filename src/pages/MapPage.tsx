@@ -83,7 +83,7 @@ function applyArrivalUi(
 function MapPageContent() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { clearUserInteracting, markPrayerUpdate } = useMapNavigationGuard();
+  const { clearUserInteracting, markPrayerUpdate, markUserInteracting } = useMapNavigationGuard();
   const flyToCampus = useMapFlyTo();
   const { getCampusPrimaryName, getProvinceLabel } = useLanguage();
   const { campuses, logPrayerWalk } = useCampuses();
@@ -228,6 +228,23 @@ function MapPageContent() {
     setSelectedCampusId(null);
   }, []);
 
+  const clearSelectedCampus = useCallback(() => {
+    setSelectedCampusId(null);
+    setPanelView('list');
+    if (isMobile) {
+      setIsExploreOpen(false);
+      setSearchOpacity(1);
+    }
+  }, [isMobile]);
+
+  const handleMapBackgroundClick = useCallback(() => {
+    if (!selectedCampusId) {
+      return;
+    }
+    markUserInteracting();
+    clearSelectedCampus();
+  }, [selectedCampusId, markUserInteracting, clearSelectedCampus]);
+
   // Panel filter callbacks — clear the search-arrival boundary highlight so the
   // panel filter's own province/region takes visual control.
   const handleProvinceChange = useCallback((province: string) => {
@@ -330,6 +347,7 @@ function MapPageContent() {
             highlightedProvince={highlightedProvince}
             selectedCampusId={selectedCampusId}
             onSelectCampus={selectCampus}
+            onClearSelectedCampus={handleMapBackgroundClick}
             travelTarget={travelTarget}
             onTravelComplete={handleTravelComplete}
             suppressMapAnimations={isPanelArrival}

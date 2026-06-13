@@ -6,6 +6,7 @@ import type { Campus } from '../types/campus';
 import type { MapNavigationState } from '../types/mapTravel';
 import { CampusMapMarker } from './CampusMapMarker';
 import { ProvinceBoundariesLayer } from './ProvinceBoundariesLayer';
+import { MapClickController } from './MapClickController';
 import { MapBoundsController } from './MapBoundsController';
 import { MapFlyToBridge } from '../context/MapFlyToContext';
 import { MapResizeController } from './MapResizeController';
@@ -22,6 +23,7 @@ type MapViewProps = {
   highlightedProvince?: string | null;
   selectedCampusId: string | null;
   onSelectCampus: (campus: Campus) => void;
+  onClearSelectedCampus: () => void;
   travelTarget?: MapNavigationState | null;
   onTravelComplete?: () => void;
   suppressMapAnimations?: boolean;
@@ -34,6 +36,7 @@ export function MapView({
   highlightedProvince = null,
   selectedCampusId,
   onSelectCampus,
+  onClearSelectedCampus,
   travelTarget = null,
   onTravelComplete,
   suppressMapAnimations = false,
@@ -78,6 +81,7 @@ export function MapView({
         <MapFlyToBridge />
         <MapResizeController />
         <MapSheetTouchLockBridge />
+        <MapClickController onMapClick={onClearSelectedCampus} />
         <MapZoomWatcher onZoomChange={setMapZoom} />
         <TileLayer
           attribution='&copy; OpenStreetMap contributors &copy; CARTO'
