@@ -1412,26 +1412,22 @@ html.lang-th {
 }
 
 /* ── Campus pin tooltip ─────────────────────────────────────────── */
+/* Leaflet wrapper stays neutral — all visuals live on inner content. */
 .leaflet-tooltip.campus-tooltip {
-  padding: 0;
-  background: transparent;
-  border: none;
-  white-space: normal;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  white-space: normal !important;
   animation: campus-tooltip-in 0.18s ease 0.15s both;
   pointer-events: none;
 }
 
-/* Full card — sharp corners, fixed width, reference-style layout */
 .leaflet-tooltip.campus-tooltip--full {
   width: 248px;
   max-width: 248px;
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  white-space: normal !important;
   overflow: visible;
-  box-shadow: none;
 }
 
 .campus-tooltip-card {
@@ -1497,21 +1493,20 @@ html.lang-th {
 
 /* Name-only pill at zoom 8 (bridge before full card) */
 .leaflet-tooltip.campus-tooltip--pill {
-  padding: 4px 10px;
-  border-radius: 999px !important;
-  background: var(--color-white);
-  border: none !important;
-  max-width: 220px;
   width: auto;
-  white-space: normal !important;
+  max-width: none;
   overflow: visible;
-  box-shadow:
-    0 1px 6px rgba(0, 0, 0, 0.10),
-    0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .campus-tooltip-pill {
-  display: block;
+  display: inline-block;
+  max-width: 220px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--color-white);
+  box-shadow:
+    0 1px 6px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
   font-size: 12px;
   font-weight: 500;
   line-height: 1.4;

@@ -76,10 +76,46 @@ export function CampusMapMarker({
   }, [campus.prayedFor, mapZoom, isSelected]);
 
   const tooltipTier = getPinTooltipTier(mapZoom, isSelected);
-  const tooltipClassName =
-    tooltipTier === 'pill'
-      ? 'campus-tooltip campus-tooltip--pill'
-      : 'campus-tooltip campus-tooltip--full';
+
+  const renderTooltip = () => {
+    if (!HAS_HOVER) {
+      return null;
+    }
+
+    if (isSelected) {
+      return (
+        <Tooltip
+          key="selected-full"
+          direction="top"
+          offset={[0, -10]}
+          className="campus-tooltip campus-tooltip--full"
+          permanent
+          sticky={false}
+        >
+          <CampusPinTooltip campus={campus} tier="full" />
+        </Tooltip>
+      );
+    }
+
+    if (tooltipTier === 'none') {
+      return null;
+    }
+
+    const isPill = tooltipTier === 'pill';
+
+    return (
+      <Tooltip
+        key={isPill ? 'hover-pill' : 'hover-full'}
+        direction="top"
+        offset={[0, isPill ? -6 : -10]}
+        className={isPill ? 'campus-tooltip campus-tooltip--pill' : 'campus-tooltip campus-tooltip--full'}
+        permanent={false}
+        sticky={false}
+      >
+        <CampusPinTooltip campus={campus} tier={tooltipTier} />
+      </Tooltip>
+    );
+  };
 
   return (
     <Marker
@@ -98,17 +134,7 @@ export function CampusMapMarker({
         click: (event) => onMarkerClick(campus, event),
       }}
     >
-      {HAS_HOVER && tooltipTier !== 'none' && (
-        <Tooltip
-          direction="top"
-          offset={[0, tooltipTier === 'pill' ? -6 : -10]}
-          className={tooltipClassName}
-          permanent={isSelected}
-          sticky={false}
-        >
-          <CampusPinTooltip campus={campus} tier={tooltipTier} />
-        </Tooltip>
-      )}
+      {renderTooltip()}
     </Marker>
   );
 }
