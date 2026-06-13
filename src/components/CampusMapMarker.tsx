@@ -77,7 +77,9 @@ export function CampusMapMarker({
 
   const tooltipTier = getPinTooltipTier(mapZoom, isSelected);
   const tooltipClassName =
-    tooltipTier === 'pill' ? 'campus-tooltip campus-tooltip--pill' : 'campus-tooltip';
+    tooltipTier === 'pill'
+      ? 'campus-tooltip campus-tooltip--pill'
+      : 'campus-tooltip campus-tooltip--full';
 
   return (
     <Marker
