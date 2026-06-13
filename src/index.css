@@ -1478,7 +1478,7 @@ html.lang-th {
   background: var(--color-campus-prayed);
 }
 
-/* Name-only pill at regional zoom (8–10) */
+/* Name-only pill at mid zoom (6–8) */
 .leaflet-tooltip.campus-tooltip--pill {
   padding: 4px 10px;
   border-radius: 999px;

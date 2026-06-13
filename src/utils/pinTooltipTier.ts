@@ -1,4 +1,4 @@
-export type PinTooltipTier = 'none' | 'pill' | 'compact' | 'full';
+export type PinTooltipTier = 'none' | 'pill' | 'full';
 
 /** Tooltip detail level by map zoom. Selected pins always get the full card. */
 export function getPinTooltipTier(mapZoom: number, isSelected: boolean): PinTooltipTier {
@@ -6,16 +6,12 @@ export function getPinTooltipTier(mapZoom: number, isSelected: boolean): PinTool
     return 'full';
   }
 
-  if (mapZoom <= 7) {
+  if (mapZoom <= 5) {
     return 'none';
   }
 
-  if (mapZoom <= 10) {
+  if (mapZoom <= 8) {
     return 'pill';
-  }
-
-  if (mapZoom <= 13) {
-    return 'compact';
   }
 
   return 'full';

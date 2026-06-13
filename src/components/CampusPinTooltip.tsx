@@ -17,7 +17,6 @@ export function CampusPinTooltip({ campus, tier }: CampusPinTooltipProps) {
 
   const prayerStatus = campus.prayedFor ? t.explore.campusKeyPrayed : t.explore.campusKeyNotPrayed;
   const studentsLine = t.explore.studentsCount.replace('{count}', formatNumber(campus.studentPopulation));
-  const showHint = tier === 'full';
   const hintText = campus.prayedFor ? t.explore.pinHintThankYou : t.explore.pinHintBeFirst;
 
   return (
@@ -27,17 +26,15 @@ export function CampusPinTooltip({ campus, tier }: CampusPinTooltipProps) {
         <p className="campus-tooltip-card__stat">{prayerStatus}</p>
         <p className="campus-tooltip-card__stat">{studentsLine}</p>
       </div>
-      {showHint && (
-        <div
-          className={
-            campus.prayedFor
-              ? 'campus-tooltip-card__hint campus-tooltip-card__hint--prayed'
-              : 'campus-tooltip-card__hint campus-tooltip-card__hint--pending'
-          }
-        >
-          {hintText}
-        </div>
-      )}
+      <div
+        className={
+          campus.prayedFor
+            ? 'campus-tooltip-card__hint campus-tooltip-card__hint--prayed'
+            : 'campus-tooltip-card__hint campus-tooltip-card__hint--pending'
+        }
+      >
+        {hintText}
+      </div>
     </div>
   );
 }
