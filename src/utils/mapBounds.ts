@@ -10,6 +10,12 @@ export const MINI_MAP_ZOOM = 16;
 const MOBILE_BREAKPOINT = 768;
 const FILTER_PADDING: [number, number] = [60, 60];
 const NAVIGATION_RELEASE_MS = 100;
+/** Matches `.campus-tooltip-card` width in CSS. */
+const CAMPUS_TOOLTIP_WIDTH = 248;
+/** Conservative height for the full card (body + hint bar). */
+const CAMPUS_TOOLTIP_ESTIMATED_HEIGHT = 172;
+const CAMPUS_TOOLTIP_MARKER_GAP = 18;
+const CAMPUS_TOOLTIP_EDGE_MARGIN = 12;
 
 export type CampusCoordinates = Pick<Campus, 'lat' | 'lng'>;
 
@@ -84,6 +90,61 @@ export function getCampusCenterPanOffsetX(map: L.Map): number {
   return overlap / 2;
 }
 
+/** Bottom edge of the floating search bar, relative to the map container top. */
+function getMapSearchOverlayBottom(map: L.Map): number {
+  const mapContainer = map.getContainer();
+  const overlay = mapContainer.parentElement?.querySelector('.map-search-overlay');
+
+  if (!(overlay instanceof HTMLElement)) {
+    return 80;
+  }
+
+  const mapRect = mapContainer.getBoundingClientRect();
+  const overlayRect = overlay.getBoundingClientRect();
+  return Math.max(
+    CAMPUS_TOOLTIP_EDGE_MARGIN,
+    overlayRect.bottom - mapRect.top + 8,
+  );
+}
+
+/**
+ * Pixel pan needed after flyTo so the selected pin and its full card tooltip
+ * sit fully inside the visible map area (panel overlap + search bar clearance).
+ */
+function getCampusSelectionPanOffset(map: L.Map, latLng: L.LatLng): { x: number; y: number } {
+  const panelOffsetX = getCampusCenterPanOffsetX(map);
+  const point = map.latLngToContainerPoint(latLng);
+  const size = map.getSize();
+
+  let panX = panelOffsetX;
+  let panY = 0;
+
+  // Center the pin in the map area not covered by the explore panel.
+  const visibleCenterX = (size.x - panelOffsetX) / 2;
+  panX += point.x - visibleCenterX;
+
+  // Leave room above the pin for the full card tooltip below the search bar.
+  const minTooltipTop = getMapSearchOverlayBottom(map);
+  const tooltipTop = point.y - CAMPUS_TOOLTIP_MARKER_GAP - CAMPUS_TOOLTIP_ESTIMATED_HEIGHT;
+  if (tooltipTop < minTooltipTop) {
+    panY = minTooltipTop - tooltipTop;
+  }
+
+  // Keep the tooltip card away from the left/right map edges.
+  const tooltipHalfWidth = CAMPUS_TOOLTIP_WIDTH / 2;
+  const tooltipLeft = point.x - tooltipHalfWidth;
+  const tooltipRight = point.x + tooltipHalfWidth;
+  const maxRight = size.x - CAMPUS_TOOLTIP_EDGE_MARGIN;
+
+  if (tooltipLeft < CAMPUS_TOOLTIP_EDGE_MARGIN) {
+    panX += CAMPUS_TOOLTIP_EDGE_MARGIN - tooltipLeft;
+  } else if (tooltipRight > maxRight) {
+    panX -= tooltipRight - maxRight;
+  }
+
+  return { x: panX, y: panY };
+}
+
 export function getFilterFitBoundsPadding(): {
   paddingTopLeft: [number, number];
   paddingBottomRight: [number, number];
@@ -100,30 +161,29 @@ export function navigateToCampus(map: L.Map, campus: CampusCoordinates): void {
   clearNavigationReleaseTimer(map);
   setMapNavigating(true);
 
-  map.flyTo([campus.lat, campus.lng], CAMPUS_NAV_ZOOM, {
+  const targetLatLng = L.latLng(campus.lat, campus.lng);
+
+  map.flyTo(targetLatLng, CAMPUS_NAV_ZOOM, {
     duration: MAP_FLY_DURATION,
     easeLinearity: 0.25,
   });
 
-  const offsetX = getCampusCenterPanOffsetX(map);
-
-  const finishNavigation = () => {
-    releaseMapNavigation(map);
-  };
-
-  if (offsetX === 0) {
-    map.once('moveend', finishNavigation);
-    return;
-  }
-
-  const panToVisibleCenter = () => {
+  const panToVisibleSelection = () => {
     clearPendingCampusPan(map);
-    map.panBy([offsetX, 0], { animate: false });
-    finishNavigation();
+    // Wait for layout (explore panel open) before measuring tooltip clearance.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const { x, y } = getCampusSelectionPanOffset(map, targetLatLng);
+        if (x !== 0 || y !== 0) {
+          map.panBy([x, y], { animate: false });
+        }
+        releaseMapNavigation(map);
+      });
+    });
   };
 
-  pendingCampusPanHandlers.set(map, panToVisibleCenter);
-  map.once('moveend', panToVisibleCenter);
+  pendingCampusPanHandlers.set(map, panToVisibleSelection);
+  map.once('moveend', panToVisibleSelection);
 }
 
 export function isCountryView(region: string, province: string): boolean {
@@ -161,15 +221,8 @@ export function hasReachedCampusNavigation(map: L.Map, targetLatLng: L.LatLng): 
     return false;
   }
 
-  const point = map.latLngToContainerPoint(targetLatLng);
-  const size = map.getSize();
-  const targetCenterX = (size.x - getCampusCenterPanOffsetX(map)) / 2;
-  const targetCenterY = size.y / 2;
-
-  return (
-    Math.abs(point.x - targetCenterX) <= 8 &&
-    Math.abs(point.y - targetCenterY) <= 8
-  );
+  const { x, y } = getCampusSelectionPanOffset(map, targetLatLng);
+  return Math.abs(x) <= 8 && Math.abs(y) <= 8;
 }
 
 /** Return to the national home view. */
