@@ -1421,13 +1421,17 @@ html.lang-th {
     0 4px 16px rgba(13, 43, 78, 0.14),
     0 1px 4px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  white-space: normal;
+  width: max-content;
+  max-width: 248px;
   animation: campus-tooltip-in 0.18s ease 0.15s both;
   pointer-events: none;
 }
 
 .campus-tooltip-card {
   min-width: 168px;
-  max-width: 220px;
+  max-width: 248px;
+  width: max-content;
 }
 
 .campus-tooltip-card__body {
@@ -1441,6 +1445,9 @@ html.lang-th {
   font-weight: 600;
   line-height: 1.35;
   color: var(--color-text-primary);
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .campus-tooltip-card__stat {
