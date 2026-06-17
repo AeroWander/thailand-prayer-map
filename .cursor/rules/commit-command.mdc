@@ -1,0 +1,18 @@
+---
+description: When the user sends /commit, commit and push immediately
+alwaysApply: true
+---
+
+# /commit Command
+
+When the user message is `/commit` (or starts with `/commit`):
+
+1. Run `git status` and `git diff` to see what changed
+2. Stage all relevant changes with `git add .`
+3. Write a short, relevant commit message focused on **why** the change was made
+4. Commit and **push to the current branch** (`git push origin HEAD`)
+5. Confirm the commit hash and branch in your reply
+
+Do not ask for confirmation unless there are no changes to commit or the diff contains likely secrets.
+
+Use a HEREDOC for the commit message. Follow the repository's existing commit message style.

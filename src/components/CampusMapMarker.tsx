@@ -18,6 +18,7 @@ type CampusMapMarkerProps = {
   mapZoom: number;
   isSelected: boolean;
   onMarkerClick: (campus: Campus, event: LeafletMouseEvent) => void;
+  onMarkerMouseOver: (campus: Campus) => void;
 };
 
 function applyDotClasses(
@@ -46,6 +47,7 @@ export function CampusMapMarker({
   mapZoom,
   isSelected,
   onMarkerClick,
+  onMarkerMouseOver,
 }: CampusMapMarkerProps) {
   const markerRef = useRef<L.Marker>(null);
   const zoomSizeRef = useRef(getDotSize(mapZoom, false));
@@ -132,6 +134,7 @@ export function CampusMapMarker({
           });
         },
         click: (event) => onMarkerClick(campus, event),
+        mouseover: () => onMarkerMouseOver(campus),
       }}
     >
       {renderTooltip()}

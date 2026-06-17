@@ -50,6 +50,13 @@ export function MapView({
     onSelectCampus(campus);
   };
 
+  const handleMarkerMouseOver = (campus: Campus) => {
+    if (selectedCampusId && selectedCampusId !== campus.id) {
+      markUserInteracting();
+      onClearSelectedCampus();
+    }
+  };
+
   const suppressBoundsUpdate = Boolean(
     travelTarget || suppressMapAnimations || selectedCampusId,
   );
@@ -98,6 +105,7 @@ export function MapView({
             mapZoom={mapZoom}
             isSelected={selectedCampusId === campus.id}
             onMarkerClick={handleMarkerClick}
+            onMarkerMouseOver={handleMarkerMouseOver}
           />
         ))}
       </MapContainer>
