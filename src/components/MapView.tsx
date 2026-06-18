@@ -6,6 +6,7 @@ import type { Campus } from '../types/campus';
 import type { MapNavigationState } from '../types/mapTravel';
 import { CampusMapMarker } from './CampusMapMarker';
 import { ProvinceBoundariesLayer } from './ProvinceBoundariesLayer';
+import { MapTooltipCleanupController } from './MapTooltipCleanupController';
 import { MapClickController } from './MapClickController';
 import { MapBoundsController } from './MapBoundsController';
 import { MapFlyToBridge } from '../context/MapFlyToContext';
@@ -89,6 +90,7 @@ export function MapView({
         <MapResizeController />
         <MapSheetTouchLockBridge />
         <MapClickController onMapClick={onClearSelectedCampus} />
+        <MapTooltipCleanupController selectedCampusId={selectedCampusId} />
         <MapZoomWatcher onZoomChange={setMapZoom} />
         <TileLayer
           attribution='&copy; OpenStreetMap contributors &copy; CARTO'
